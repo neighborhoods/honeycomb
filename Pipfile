@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+flake8 = "==3.7.9"
+pytest = "==5.3.5"
+pytest-mock = "==2.0.0"
+
+[packages]
+pyhive = "==0.6.1"
+sasl = "==0.2.1"
+thrift = "==0.13.0"
+thrift-sasl = "==0.3.0"
+pandas = "==1.0.1"
+
+[requires]
+python_version = "3.7"
