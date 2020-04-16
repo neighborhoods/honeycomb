@@ -1,0 +1,6 @@
+__title__ = "comb"
+__description__ = "Multi-source/engine querying tool"
+__url__ = "https://github.com/neighborhoods/domb"
+__version__ = "0.0"
+__author__ = "George Wood (@Geoiv)"
+__author_email__ = "george.wood@55places.com"
