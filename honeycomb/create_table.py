@@ -2,6 +2,7 @@ from tempfile import NamedTemporaryFile
 import boto3
 
 from honeycomb.config import dtype_map
+from honeycomb import run_query
 from pyhive import hive, presto
 
 # TODO logging instead of print
@@ -23,26 +24,25 @@ schema_to_zone_bucket_map = {
 
 def get_db_connection(engine='hive'):
     if engine == 'hive':
-        cur = hive.connect('localhost').cursor()
+        conn = hive.connect('localhost').cursor()
     elif engine == 'presto':
-        cur = presto.connect('localhost').cursor()
+        conn = presto.connect('localhost').cursor()
     # elif engine == 'gbq':
     else:
         raise ValueError('Specified engine is not supported: ' + engine)
-    return cur
+    return conn
 
 
-def check_table_existence(cur, schema_name, table_name):
+def check_table_existence(schema_name, table_name):
     show_tables_query = (
         'SHOW TABLES IN {schema_name} LIKE \'{table_name}\''.format(
             schema_name=schema_name,
             table_name=table_name)
     )
 
-    similar_tables = cur.fetchall(show_tables_query)
-    if similar_tables is not None:
-        if table_name in similar_tables:
-            return True
+    similar_tables = run_query.run_query(show_tables_query, engine='hive')
+    if table_name in similar_tables['tab_name'].values:
+        return True
     return False
 
 
@@ -83,18 +83,18 @@ def upload_df(df, s3_filename, s3_bucket='nhds-data-lake-experimental-zone'):
     return 's3://' + '/'.join([s3_bucket, s3_filename])
 
 
+# TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
-                         engine="hive", dtypes=None, file_name=None,
-                         cur=None):
-    if cur is None:
-        cur = get_db_connection(engine)
+                         dtypes=None, file_name=None, conn=None):
+    if conn is None:
+        conn = get_db_connection(engine='hive')
 
-    table_exists = check_table_existence(cur, schema_name, table_name)
+    table_exists = check_table_existence(schema_name, table_name)
     if table_exists:
-        print("Table {schema_name}.{table_name} already exists. "
-              "Cancelling...".format(
-                  schema_name=schema_name,
-                  table_name=table_name))
+        raise ValueError("Table {schema_name}.{table_name} already exists. "
+                         "Cancelling...".format(
+                             schema_name=schema_name,
+                             table_name=table_name))
     if dtypes is not None:
         df = apply_spec_dtypes(df, dtypes)
     db_dtypes = map_pd_to_db_dtypes(df)
@@ -118,4 +118,4 @@ def create_table_from_df(df, table_name, schema_name='experimental',
         s3_path=s3_path.rsplit('/', 1)[0] + '/'
     )
     print(create_statement)
-    cur.execute(create_statement)
+    conn.execute(create_statement)

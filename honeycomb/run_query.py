@@ -7,11 +7,11 @@ def clean_col_names(df):
     return df
 
 
-def run_query(query, type="presto"):
+def run_query(query, engine="presto"):
     """
     General wrapper function around querying with different engines
     """
-    query_fn = query_fns[type]
+    query_fn = query_fns[engine]
     df = query_fn(query)
     return df
 
