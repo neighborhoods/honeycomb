@@ -19,7 +19,7 @@ def store(obj, filename, folder='',
     """
     filetype = os.path.splitext(filename)[-1][1:].lower()
     if filetype not in storage_fns.keys():
-        raise ValueError("Storage type {storage_type}")
+        raise ValueError("Storage type {storage_type} not supported.")
     storage_fn = storage_fns[filetype]
 
     if folder and not folder.endswith('/'):
