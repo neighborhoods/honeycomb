@@ -3,6 +3,9 @@ from pyhive import hive, presto
 
 
 def clean_col_names(df):
+    """
+    Removes table prefixes from Hive-queried tables
+    """
     df.columns = df.columns.str.replace(r'^.*\.', '')
     return df
 
@@ -16,35 +19,29 @@ def run_query(query, engine="presto"):
     return df
 
 
-def hive_query(query, should_convert_dtypes=False):
+def hive_query(query):
     """
     Hive-specific query function
     """
     with hive.connect("localhost") as conn:
         df = pd.read_sql(query, conn)
-    # if should_convert_dtypes:
-    #     df = convert_dtypes(df)
     return clean_col_names(df)
 
 
-def presto_query(query, should_convert_dtypes=False):
+def presto_query(query):
     """
     Presto-specific query function
     """
     with presto.connect("localhost") as conn:
         df = pd.read_sql(query, conn)
-    # if should_convert_dtypes:
-    #     df = convert_dtypes(df)
     return df
 
 
-def gbq_query(query, should_convert_dtypes=False):
+def gbq_query(query, project_id):
     """
     BigQuery-specific query function
     """
     df = pd.read_gbq(query, project_id="")
-    # if should_convert_dtypes:
-    #     df = convert_dtypes(df)
     return df
 
 
