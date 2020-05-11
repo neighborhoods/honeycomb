@@ -22,8 +22,9 @@ setup(
     license=about["__license__"],
     packages=find_packages(),
     install_requires=[
-        'boto3',
-        'bigquery',
-        'pandas'
+        'boto3>=1.13.7',
+        'pandas>=1.0.1',
+        'pyhive>=0.6.1',
+        'sasl>=0.2.1'
     ]
  )
