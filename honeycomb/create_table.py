@@ -63,6 +63,9 @@ def apply_spec_dtypes(df, spec_dtypes):
 
 
 def map_pd_to_db_dtypes(df):
+    if any(df.dtypes == 'category'):
+        raise TypeError("Pandas' 'categorical' type is not currently "
+                        "supported. Contact honeycomb devs for further info.")
     db_dtypes = df.dtypes
 
     for orig_type, new_type in dtype_map.items():
@@ -86,15 +89,19 @@ def upload_df(df, s3_filename, s3_bucket='nhds-data-lake-experimental-zone'):
 # TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
                          dtypes=None, file_name=None, conn=None):
+    """
+    Uploads a dataframe to
+    """
     if conn is None:
         conn = get_db_connection(engine='hive')
 
     table_exists = check_table_existence(schema_name, table_name)
     if table_exists:
-        raise ValueError("Table {schema_name}.{table_name} already exists. "
-                         "Cancelling...".format(
-                             schema_name=schema_name,
-                             table_name=table_name))
+        raise ValueError(
+            "Table {schema_name}.{table_name} already exists. ".format(
+                schema_name=schema_name,
+                table_name=table_name))
+
     if dtypes is not None:
         df = apply_spec_dtypes(df, dtypes)
     db_dtypes = map_pd_to_db_dtypes(df)

@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 
 about = {}
-with open(os.path.join(here, "comb", "__version__.py"), "r") as f:
+with open(os.path.join(here, "honeycomb", "__version__.py"), "r") as f:
     exec(f.read(), about)
 
 with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
@@ -21,5 +21,9 @@ setup(
     long_description_content_type="text/markdown",
     license=about["__license__"],
     packages=find_packages(),
-    install_requires=[]
+    install_requires=[
+        'boto3',
+        'bigquery',
+        'pandas'
+    ]
  )
