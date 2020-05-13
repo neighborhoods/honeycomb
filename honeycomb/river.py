@@ -48,7 +48,7 @@ def _upload_csv(obj, s3_path, bucket):
                         "DataFrames.")
 
     s3 = boto3.resource('s3')
-    with NamedTemporaryFile() as temp:
+    with NamedTemporaryFile(dir='/tmp') as temp:
         obj.to_csv(temp.name, index=False, header=False)
         s3.meta.client.upload_file(temp.name, bucket, s3_path)
 

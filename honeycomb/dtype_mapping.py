@@ -14,19 +14,19 @@ def apply_spec_dtypes(df, spec_dtypes):
     Raises:
         TypeError: If casting 'df' to the new types fails
     """
-    new_dtypes = df.dtypes
     for col_name, new_dtype in spec_dtypes:
-        if col_name not in new_dtypes.keys():
-            print('Additional dtype casting for failed: '
-                  '{col_name} not in DataFrame.'.format(col_name=col_name))
-        else:
-            new_dtypes[col_name] = new_dtype
-
-    try:
-        df = df.astype(new_dtypes)
-        return df
-    except ValueError:
-        print('Casting to default or specified dtypes failed.')
+        if col_name not in df.dtypes.keys():
+            raise KeyError("Additional dtype casting failed: "
+                           "'{col_name}' not in DataFrame.".format(
+                               col_name=col_name))
+        try:
+            df[col_name] = df[col_name].astype(new_dtype)
+        except TypeError as e:
+            raise TypeError("Casting column '{col_name}' to type "
+                            "'{new_dtype}' failed.".format(
+                                col_name=col_name,
+                                new_dtype=new_dtype)) from e
+    return df
 
 
 def map_pd_to_db_dtypes(df):

@@ -22,6 +22,7 @@ def run_query(query, engine="presto"):
 def hive_query(query):
     """
     Hive-specific query function
+    Note: uses an actual connection, rather than a connection cursor
     """
     with hive.connect("localhost") as conn:
         df = pd.read_sql(query, conn)
@@ -31,6 +32,7 @@ def hive_query(query):
 def presto_query(query):
     """
     Presto-specific query function
+    Note: uses an actual connection, rather than a connection cursor
     """
     with presto.connect("localhost") as conn:
         df = pd.read_sql(query, conn)
