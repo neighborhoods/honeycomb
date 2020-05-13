@@ -20,7 +20,20 @@ schema_to_zone_bucket_map = {
 }
 
 
-def check_table_existence(schema_name, table_name):
+def check_schema_existence(schema_name, engine='presto'):
+    show_schemas_query = (
+        'SHOW SCHEMAS LIKE \'{schema_name}\''.format(schema_name=schema_name)
+    )
+
+    similar_schemas = run_query.run_query(show_schemas_query, engine='hive')
+
+    # NOTE: 'database' and 'schema' are interchangeable terms in Hive
+    if schema_name in similar_schemas['database_name'].values:
+        return True
+    return False
+
+
+def check_table_existence(schema_name, table_name, engine='presto'):
     """
     Checks if a specific table exists in a specific schema
 
@@ -46,7 +59,7 @@ def check_table_existence(schema_name, table_name):
 # TODO filename generation
 # TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
-                         dtypes=None, s3_filename=None, s3_folder=None):
+                         dtypes=None, s3_filename=None, s3_folder=''):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -59,11 +72,15 @@ def create_table_from_df(df, table_name, schema_name='experimental',
         s3_filename (str, optional): Filename to store CSV in S3 under
         s3_folder, (str, optional): S3 'folder' to prepend 's3_filename'
     """
+    if s3_filename is None:
+        raise ValueError('Until S3 name generation is implemented, '
+                         ' \'s3_filename\' cannot be \'None\'.')
     with get_db_connection(engine='hive') as conn:
-        table_exists = check_table_existence(schema_name, table_name)
+        table_exists = check_table_existence(
+            schema_name, table_name, engine='hive')
         if table_exists:
             raise ValueError(
-                "Table {schema_name}.{table_name} already exists. ".format(
+                'Table \'{schema_name}.{table_name}\' already exists. '.format(
                     schema_name=schema_name,
                     table_name=table_name))
 
@@ -109,6 +126,6 @@ def append_table(df, table_name, schema_name='experimental', filename=None):
     table_exists = check_table_existence(schema_name, table_name)
     if not table_exists:
         raise ValueError(
-            "Table {schema_name}.{table_name} does not exist. ".format(
+            'Table \'{schema_name}.{table_name}\' does not exist. '.format(
                 schema_name=schema_name,
                 table_name=table_name))

@@ -16,14 +16,14 @@ def apply_spec_dtypes(df, spec_dtypes):
     """
     for col_name, new_dtype in spec_dtypes:
         if col_name not in df.dtypes.keys():
-            raise KeyError("Additional dtype casting failed: "
-                           "'{col_name}' not in DataFrame.".format(
+            raise KeyError('Additional dtype casting failed: '
+                           '\'{col_name}\' not in DataFrame.'.format(
                                col_name=col_name))
         try:
             df[col_name] = df[col_name].astype(new_dtype)
         except TypeError as e:
-            raise TypeError("Casting column '{col_name}' to type "
-                            "'{new_dtype}' failed.".format(
+            raise TypeError('Casting column \'{col_name}\' to type '
+                            '\'{new_dtype}\' failed.'.format(
                                 col_name=col_name,
                                 new_dtype=new_dtype)) from e
     return df
@@ -40,8 +40,8 @@ def map_pd_to_db_dtypes(df):
         db_dtypes (dict<str:str>): A dict from column names to database dtypes
     """
     if any(df.dtypes == 'category'):
-        raise TypeError("Pandas' 'categorical' type is not currently "
-                        "supported. Contact honeycomb devs for further info.")
+        raise TypeError('Pandas\' \'categorical\' type is not currently '
+                        'supported. Contact honeycomb devs for further info.')
     db_dtypes = df.dtypes
 
     for orig_type, new_type in dtype_map.items():

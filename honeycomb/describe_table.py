@@ -3,7 +3,7 @@ import pandas as pd
 from honeycomb.connection import get_db_connection
 
 
-def describe_table(schema_name, table_name):
+def describe_table(schema_name, table_name, engine='presto'):
     """
     Retrieves the description of a specific table in hive
 
@@ -14,8 +14,8 @@ def describe_table(schema_name, table_name):
         desc (pd.DataFrame): A dataframe containing descriptive information
             on the specified table
     """
-    with get_db_connection(engine='presto') as conn:
-        desc_query = "DESCRIBE EXTENDED {schema_name}.{table_name}".format(
+    with get_db_connection(engine=engine) as conn:
+        desc_query = 'DESCRIBE EXTENDED {schema_name}.{table_name}'.format(
             schema_name=schema_name,
             table_name=table_name)
         desc = pd.read_sql(desc_query, conn)

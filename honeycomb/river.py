@@ -19,7 +19,7 @@ def store(obj, filename, folder='',
     """
     filetype = os.path.splitext(filename)[-1][1:].lower()
     if filetype not in storage_fns.keys():
-        raise ValueError("Storage type {storage_type} not supported.")
+        raise ValueError('Storage type \'{storage_type}\' not supported.')
     storage_fn = storage_fns[filetype]
 
     if folder and not folder.endswith('/'):
@@ -44,8 +44,8 @@ def _upload_csv(obj, s3_path, bucket):
         TypeError: if 'obj' is not a DataFrame
     """
     if not isinstance(obj, pd.DataFrame):
-        raise TypeError("Storage format of 'csv' can only be used with "
-                        "DataFrames.")
+        raise TypeError('Storage format of \'csv\' can only be used with '
+                        'DataFrames.')
 
     s3 = boto3.resource('s3')
     with NamedTemporaryFile(dir='/tmp') as temp:

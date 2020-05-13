@@ -1,5 +1,5 @@
 dtype_map = {
-    'object': 'VARCHAR(255)',
+    'object': 'STRING',
     'int64': 'INT',
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
