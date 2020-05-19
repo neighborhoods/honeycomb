@@ -11,14 +11,6 @@ def run_query(query, engine='presto'):
     return df
 
 
-def _clean_col_names(df):
-    """
-    Removes table prefixes from Hive-queried tables
-    """
-    df.columns = df.columns.str.replace(r'^.*\.', '')
-    return df
-
-
 def _hive_query(query):
     """
     Hive-specific query function
@@ -26,7 +18,9 @@ def _hive_query(query):
     """
     with hive.connect('localhost') as conn:
         df = pd.read_sql(query, conn)
-    return _clean_col_names(df)
+    # Cleans table prefixes from column names, which are added by Hive
+    df.columns = df.columns.str.replace(r'^.*\.', '')
+    return df
 
 
 def _presto_query(query):
