@@ -1,9 +1,9 @@
-from tempfile import NamedTemporaryFile
-import boto3
+import river as rv
 
-from honeycomb.config import dtype_map
+from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
+from honeycomb.connection import get_db_connection
 from honeycomb import run_query
-from pyhive import hive, presto
+
 
 # TODO logging instead of print
 # TODO table/column comments
@@ -22,18 +22,30 @@ schema_to_zone_bucket_map = {
 }
 
 
-def get_db_connection(engine='hive'):
-    if engine == 'hive':
-        conn = hive.connect('localhost').cursor()
-    elif engine == 'presto':
-        conn = presto.connect('localhost').cursor()
-    # elif engine == 'gbq':
-    else:
-        raise ValueError('Specified engine is not supported: ' + engine)
-    return conn
+def check_schema_existence(schema_name, engine='presto'):
+    show_schemas_query = (
+        'SHOW SCHEMAS LIKE \'{schema_name}\''.format(schema_name=schema_name)
+    )
+
+    similar_schemas = run_query.run_query(show_schemas_query, engine='hive')
+
+    # NOTE: 'database' and 'schema' are interchangeable terms in Hive
+    if schema_name in similar_schemas['database_name'].values:
+        return True
+    return False
 
 
-def check_table_existence(schema_name, table_name):
+def check_table_existence(schema_name, table_name, engine='presto'):
+    """
+    Checks if a specific table exists in a specific schema
+
+    Args:
+        schema_name (str): Which schema to check for the table in
+        table_name (str): The name of the table to check for
+
+    Returns:
+        bool: Whether or not the specified table exists
+    """
     show_tables_query = (
         'SHOW TABLES IN {schema_name} LIKE \'{table_name}\''.format(
             schema_name=schema_name,
@@ -46,76 +58,76 @@ def check_table_existence(schema_name, table_name):
     return False
 
 
-def apply_spec_dtypes(df, spec_dtypes):
-    new_dtypes = df.dtypes
-    for col_name, new_dtype in spec_dtypes:
-        if col_name not in new_dtypes.keys():
-            print('Additional dtype casting for failed: '
-                  '{col_name} not in DataFrame.'.format(col_name=col_name))
-        else:
-            new_dtypes[col_name] = new_dtype
-
-    try:
-        df = df.astype(new_dtypes)
-        return df
-    except ValueError:
-        print('Casting to default or specified dtypes failed.')
-
-
-def map_pd_to_db_dtypes(df):
-    db_dtypes = df.dtypes
-
-    for orig_type, new_type in dtype_map.items():
-        # dtypes can be compared to their string representations for equality
-        db_dtypes[db_dtypes == orig_type] = new_type
-
-    return db_dtypes
-
-
-# TODO add s3_folder?
-def upload_df(df, s3_filename, s3_bucket='nhds-data-lake-experimental-zone'):
-    s3 = boto3.resource('s3')
-
-    with NamedTemporaryFile() as temp:
-        df.to_csv(temp.name, index=False, header=False)
-        s3.meta.client.upload_file(temp.name, s3_bucket, s3_filename)
-
-    return 's3://' + '/'.join([s3_bucket, s3_filename])
-
-
+# TODO filename generation
 # TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
-                         dtypes=None, file_name=None, conn=None):
-    if conn is None:
-        conn = get_db_connection(engine='hive')
+                         dtypes=None, s3_path=None):
+    """
+    Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
+    Args:
+        df (pd.DataFrame): The DataFrame to create the tabale from.
+        table_name (str): The name of the table to be created
+        schema_name (str): The name of the schema to create the table in
+        dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
+            specific columns to be cast to prior to uploading.
+        s3_path (str, optional): Filename to store CSV in S3 under
+    """
+    if s3_path is None:
+        raise ValueError('Until S3 name generation is implemented, '
+                         ' \'s3_path\' cannot be \'None\'.')
+
+    with get_db_connection(engine='hive') as conn:
+        table_exists = check_table_existence(
+            schema_name, table_name, engine='hive')
+        if table_exists:
+            raise ValueError(
+                'Table \'{schema_name}.{table_name}\' already exists. '.format(
+                    schema_name=schema_name,
+                    table_name=table_name))
+
+        if dtypes is not None:
+            df = apply_spec_dtypes(df, dtypes)
+        db_dtypes = map_pd_to_db_dtypes(df)
+
+        # TODO replace with s3 tool
+        s3_bucket = schema_to_zone_bucket_map[schema_name]
+        s3_path = rv.write(df, s3_path, s3_bucket, index=False, header=False)
+
+        create_statement = """
+        CREATE EXTERNAL TABLE {schema_name}.{table_name} (
+        {columns_and_types}
+        )
+        ROW FORMAT DELIMITED
+        FIELDS TERMINATED BY ','
+        LINES TERMINATED BY '\\n'
+        LOCATION 's3://{s3_path}'
+        """.format(
+            schema_name=schema_name,
+            table_name=table_name,
+            columns_and_types=db_dtypes.to_string().replace('\n', ',\n'),
+            s3_path=s3_path.rsplit('/', 1)[0] + '/'
+        )
+        print(create_statement)
+        conn.execute(create_statement)
+
+
+def append_table(df, table_name, schema_name='experimental', filename=None):
+    """
+    Uploads a dataframe to S3 and appends it to an already existing table.
+
+    Args:
+        df (pd.DataFrame): Which schema to check for the table in
+        table_name (str): The name of the table to be created
+        schema_name (str): The name of the schema to create the table in
+        dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
+            specific columns to be cast to prior to uploading.
+        s3_filename (str, optional): Filename to store CSV in S3 under
+        s3_folder, (str, optional): S3 'folder' to prepend 's3_filename'
+    """
     table_exists = check_table_existence(schema_name, table_name)
-    if table_exists:
-        raise ValueError("Table {schema_name}.{table_name} already exists. "
-                         "Cancelling...".format(
-                             schema_name=schema_name,
-                             table_name=table_name))
-    if dtypes is not None:
-        df = apply_spec_dtypes(df, dtypes)
-    db_dtypes = map_pd_to_db_dtypes(df)
-
-    # TODO replace with s3 tool
-    s3_bucket = schema_to_zone_bucket_map[schema_name]
-    s3_path = upload_df(df, file_name, s3_bucket=s3_bucket)
-
-    create_statement = """
-    CREATE EXTERNAL TABLE {schema_name}.{table_name} (
-    {columns_and_types}
-    )
-    ROW FORMAT DELIMITED
-    FIELDS TERMINATED BY ','
-    LINES TERMINATED BY '\\n'
-    LOCATION '{s3_path}'
-    """.format(
-        schema_name=schema_name,
-        table_name=table_name,
-        columns_and_types=db_dtypes.to_string().replace('\n', ',\n'),
-        s3_path=s3_path.rsplit('/', 1)[0] + '/'
-    )
-    print(create_statement)
-    conn.execute(create_statement)
+    if not table_exists:
+        raise ValueError(
+            'Table \'{schema_name}.{table_name}\' does not exist. '.format(
+                schema_name=schema_name,
+                table_name=table_name))

@@ -1,13 +1,9 @@
 import pandas as pd
-from pyhive import hive, presto
+
+from honeycomb.connection import get_db_connection
 
 
-def clean_col_names(df):
-    df.columns = df.columns.str.replace(r'^.*\.', '')
-    return df
-
-
-def run_query(query, engine="presto"):
+def run_query(query, engine='presto'):
     """
     General wrapper function around querying with different engines
     """
@@ -16,40 +12,40 @@ def run_query(query, engine="presto"):
     return df
 
 
-def hive_query(query, should_convert_dtypes=False):
+def _hive_query(query):
     """
     Hive-specific query function
+    Note: uses an actual connection, rather than a connection cursor
     """
-    with hive.connect("localhost") as conn:
+    with get_db_connection('hive', cursor=False) as conn:
         df = pd.read_sql(query, conn)
-    # if should_convert_dtypes:
-    #     df = convert_dtypes(df)
-    return clean_col_names(df)
-
-
-def presto_query(query, should_convert_dtypes=False):
-    """
-    Presto-specific query function
-    """
-    with presto.connect("localhost") as conn:
-        df = pd.read_sql(query, conn)
-    # if should_convert_dtypes:
-    #     df = convert_dtypes(df)
+    # Cleans table prefixes from column names, which are added by Hive
+    df.columns = df.columns.str.replace(r'^.*\.', '')
     return df
 
 
-def gbq_query(query, should_convert_dtypes=False):
+def _presto_query(query):
+    """
+    Presto-specific query function
+    Note: uses an actual connection, rather than a connection cursor
+    """
+    # Presto does not have a notion of a persistent connection, so closing
+    # is unnecessary
+    conn = get_db_connection('presto', cursor=False)
+    df = pd.read_sql(query, conn)
+    return df
+
+
+def _gbq_query(query, project_id):
     """
     BigQuery-specific query function
     """
-    df = pd.read_gbq(query, project_id="")
-    # if should_convert_dtypes:
-    #     df = convert_dtypes(df)
+    df = pd.read_gbq(query, project_id=project_id)
     return df
 
 
 query_fns = {
-    "presto": presto_query,
-    "hive": hive_query,
-    "gbq": gbq_query
+    'presto': _presto_query,
+    'hive': _hive_query,
+    'gbq': _gbq_query
 }
