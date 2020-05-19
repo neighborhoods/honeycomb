@@ -65,11 +65,10 @@ setup(
     description=about["__description__"],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    license=about["__license__"],
     packages=find_packages(),
     install_requires=[
-        'boto3>=1.13.7',
-        'pandas>=1.0.1',
+        'boto3>=1.10.0',
+        'pandas>=1.0.0',
         'pyhive>=0.6.1',
         'sasl>=0.2.1'
     ]

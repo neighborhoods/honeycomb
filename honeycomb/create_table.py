@@ -1,6 +1,8 @@
+import river as rv
+
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 from honeycomb.connection import get_db_connection
-from honeycomb import run_query, river as rv
+from honeycomb import run_query
 
 
 # TODO logging instead of print
@@ -59,7 +61,7 @@ def check_table_existence(schema_name, table_name, engine='presto'):
 # TODO filename generation
 # TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
-                         dtypes=None, s3_filename=None, s3_folder=''):
+                         dtypes=None, s3_path=None):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -69,12 +71,12 @@ def create_table_from_df(df, table_name, schema_name='experimental',
         schema_name (str): The name of the schema to create the table in
         dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
             specific columns to be cast to prior to uploading.
-        s3_filename (str, optional): Filename to store CSV in S3 under
-        s3_folder, (str, optional): S3 'folder' to prepend 's3_filename'
+        s3_path (str, optional): Filename to store CSV in S3 under
     """
-    if s3_filename is None:
+    if s3_path is None:
         raise ValueError('Until S3 name generation is implemented, '
-                         ' \'s3_filename\' cannot be \'None\'.')
+                         ' \'s3_path\' cannot be \'None\'.')
+
     with get_db_connection(engine='hive') as conn:
         table_exists = check_table_existence(
             schema_name, table_name, engine='hive')
@@ -90,7 +92,7 @@ def create_table_from_df(df, table_name, schema_name='experimental',
 
         # TODO replace with s3 tool
         s3_bucket = schema_to_zone_bucket_map[schema_name]
-        s3_path = rv.store(df, s3_filename, s3_folder, s3_bucket)
+        s3_path = rv.write(df, s3_path, s3_bucket, index=False, header=False)
 
         create_statement = """
         CREATE EXTERNAL TABLE {schema_name}.{table_name} (
