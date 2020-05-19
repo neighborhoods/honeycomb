@@ -1,5 +1,6 @@
 import pandas as pd
-from pyhive import hive, presto
+
+from honeycomb.connection import get_db_connection
 
 
 def run_query(query, engine='presto'):
@@ -16,7 +17,7 @@ def _hive_query(query):
     Hive-specific query function
     Note: uses an actual connection, rather than a connection cursor
     """
-    with hive.connect('localhost') as conn:
+    with get_db_connection('hive', cursor=False) as conn:
         df = pd.read_sql(query, conn)
     # Cleans table prefixes from column names, which are added by Hive
     df.columns = df.columns.str.replace(r'^.*\.', '')
@@ -30,7 +31,7 @@ def _presto_query(query):
     """
     # Presto does not have a notion of a persistent connection, so closing
     # is unnecessary
-    conn = presto.connect('localhost')
+    conn = get_db_connection('presto', cursor=False)
     df = pd.read_sql(query, conn)
     return df
 

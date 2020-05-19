@@ -14,7 +14,7 @@ def describe_table(schema_name, table_name, engine='presto'):
         desc (pd.DataFrame): A dataframe containing descriptive information
             on the specified table
     """
-    with get_db_connection(engine=engine) as conn:
+    with get_db_connection(engine=engine, cursor=False) as conn:
         desc_query = 'DESCRIBE EXTENDED {schema_name}.{table_name}'.format(
             schema_name=schema_name,
             table_name=table_name)
