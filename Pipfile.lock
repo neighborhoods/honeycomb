@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6b937162ca1909dc6981af12c508d35b542cab1962af377bf47c670b637f7a68"
+            "sha256": "80a82d939b751e88cd6af1fa6e1120feb9721bd504d350ea4bff19a3f2fa1dfd"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -126,11 +126,11 @@
         },
         "river": {
             "hashes": [
-                "sha256:b9e18d6868a794007c057755524070b832a99795aa367c13ef5d166b25e62f1b",
-                "sha256:f744e52aebc7257a753e072ef7f1d4b1608fc738cae168687ff75dbaaf16fe9b"
+                "sha256:3b224e67ad5603fc060b01d18147726c703eaed0400395c8b53dc08d375bb4e8",
+                "sha256:69a4cbbac8135b12ef2e100ef2033cb13bc7ca1dc7d47306c7a735e04a0d2a3e"
             ],
             "index": "neighborhoods",
-            "version": "==0.1.0"
+            "version": "==0.1.1"
         },
         "s3transfer": {
             "hashes": [
