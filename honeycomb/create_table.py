@@ -107,7 +107,6 @@ def create_table_from_df(df, table_name, schema_name='experimental',
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
 
-    # TODO replace with s3 tool
     s3_bucket = schema_to_zone_bucket_map[schema_name]
 
     filetype = os.path.splitext(s3_path)[-1][1:].lower()
