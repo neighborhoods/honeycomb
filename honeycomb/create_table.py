@@ -115,8 +115,6 @@ def create_table_from_df(df, table_name, schema_name='experimental',
     rv.write(df, s3_path, s3_bucket, **fn_defaults)
     s3_path = rv.write(df, s3_path, s3_bucket, index=False, header=False)
 
-    print(col_defs)
-
     create_statement = """
     CREATE EXTERNAL TABLE {schema_name}.{table_name} (
     {columns_and_types}
