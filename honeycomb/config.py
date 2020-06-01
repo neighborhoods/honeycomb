@@ -17,7 +17,8 @@ storage_type_specs = {
         'ddl': """
                ROW FORMAT DELIMITED
                FIELDS TERMINATED BY ','
-               LINES TERMINATED BY '\\n'"""
+               LINES TERMINATED BY '\\n'
+               """
     },
     'pq': {
         'settings': {},
