@@ -32,8 +32,8 @@ def append_table(df, table_name, schema_name='experimental', filename=None):
     )
 
     table_metadata = run_query.run_query(metadata_query, 'hive')
-    # Columns from this query just take on the value in their first row -
-    # can be confusing, so just setting it to numeric.
+    # Columns from this query just set the value in the first row
+    # as their name - can be confusing, so just setting it to numeric.
     table_metadata.columns = [0, 1, 2]
 
     full_path = table_metadata.loc[
