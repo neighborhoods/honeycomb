@@ -30,6 +30,29 @@ def add_comments_to_col_defs(col_defs, comments):
     return col_defs
 
 
+def build_create_table_ddl(schema_name, table_name, col_defs,
+                           table_comment, storage_type, full_path):
+    create_table_ddl = """
+    CREATE EXTERNAL TABLE {schema_name}.{table_name} (
+    {columns_and_types}
+    )
+    {table_comment}
+    {storage_format_ddl}
+    LOCATION 's3://{full_path}'
+    """.format(
+        schema_name=schema_name,
+        table_name=table_name,
+        columns_and_types=col_defs.to_string(
+            header=False).replace('\n', ',\n'),
+        table_comment=('COMMENT \'{table_comment}\''.format(
+            table_comment=table_comment)) if table_comment else '',
+        storage_format_ddl=storage_type_specs[storage_type]['ddl'],
+        full_path=full_path.rsplit('/', 1)[0] + '/'
+    )
+
+    return create_table_ddl
+
+
 # TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
                          dtypes=None, path=None, filename=None,
@@ -82,22 +105,8 @@ def create_table_from_df(df, table_name, schema_name='experimental',
     storage_settings = storage_type_specs[storage_type]['settings']
     full_path = rv.write(df, path, s3_bucket, **storage_settings)
 
-    create_statement = """
-    CREATE EXTERNAL TABLE {schema_name}.{table_name} (
-    {columns_and_types}
-    )
-    {table_comment}
-    {storage_format_ddl}
-    LOCATION 's3://{full_path}'
-    """.format(
-        schema_name=schema_name,
-        table_name=table_name,
-        columns_and_types=col_defs.to_string(
-            header=False).replace('\n', ',\n'),
-        table_comment=('COMMENT \'{table_comment}\''.format(
-            table_comment=table_comment)) if table_comment else '',
-        storage_format_ddl=storage_type_specs[storage_type]['ddl'],
-        full_path=full_path.rsplit('/', 1)[0] + '/'
-    )
-    print(create_statement)
-    run_query.run_query(create_statement, engine='hive')
+    create_table_ddl = build_create_table_ddl(schema_name, table_name,
+                                              col_defs, table_comment,
+                                              storage_type, full_path)
+    print(create_table_ddl)
+    run_query.run_query(create_table_ddl, engine='hive')
