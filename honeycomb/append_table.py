@@ -36,15 +36,9 @@ def append_table(df, table_name, schema_name='experimental', filename=None):
     # as their name - can be confusing, so just setting it to numeric.
     table_metadata.columns = [0, 1, 2]
 
-    full_path = table_metadata.loc[
-        table_metadata[0].str.strip() == 'Location:', 1].values[0]
-
-    prefix = 's3://'
-    full_path = full_path[len(prefix):]
-
-    bucket, path = full_path.split('/', 1)
-
+    bucket, path = meta.get_table_s3_location(table_metadata)
     storage_type = meta.get_table_storage_type(table_metadata)
+
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema_name, storage_type)
     if not path.endswith('/'):

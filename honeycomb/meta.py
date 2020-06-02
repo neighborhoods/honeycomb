@@ -37,6 +37,16 @@ def generate_s3_filename(storage_type=None):
     return '.'.join([filename, storage_type])
 
 
+def get_table_s3_location(table_metadata):
+    full_path = table_metadata.loc[
+        table_metadata[0].str.strip() == 'Location:', 1].values[0]
+
+    prefix = 's3://'
+    full_path = full_path[len(prefix):]
+
+    return full_path.split('/', 1)
+
+
 def get_table_storage_type(table_metadata):
     """
     Identifies the format a table's underlying files are stored in using

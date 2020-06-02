@@ -7,7 +7,6 @@ from honeycomb.config import storage_type_specs
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 
 
-
 schema_to_zone_bucket_map = {
     'landing': 'nhds-data-lake-landing-zone',
     'staging': 'nhds-data-lake-staging-zone',
