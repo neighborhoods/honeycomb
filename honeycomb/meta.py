@@ -44,7 +44,8 @@ def get_table_s3_location(table_metadata):
     prefix = 's3://'
     full_path = full_path[len(prefix):]
 
-    return full_path.split('/', 1)
+    bucket, path = full_path.split('/', 1)
+    return bucket, path
 
 
 def get_table_storage_type(table_metadata):
