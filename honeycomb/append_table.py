@@ -31,7 +31,7 @@ def append_table(df, table_name, schema_name='experimental', filename=None):
         table_name=table_name
     )
 
-    table_metadata = run_query.run_query(metadata_query, 'hive')
+    table_metadata = run_query(metadata_query, 'hive')
     # Columns from this query just set the value in the first row
     # as their name - can be confusing, so just setting it to numeric.
     table_metadata.columns = [0, 1, 2]

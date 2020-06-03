@@ -108,4 +108,4 @@ def create_table_from_df(df, table_name, schema_name='experimental',
                                               col_defs, table_comment,
                                               storage_type, full_path)
     print(create_table_ddl)
-    run_query.run_query(create_table_ddl, engine='hive')
+    run_query(create_table_ddl, engine='hive')
