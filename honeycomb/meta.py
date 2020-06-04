@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from honeycomb.run_query import run_query
+
 
 def gen_filename_if_allowed(schema_name, storage_type=None):
     """
@@ -30,25 +32,45 @@ def generate_s3_filename(storage_type=None):
             Desired storage type of the file to be stored. Will be set to
             Parquet if left unspecified.
     """
-    filename = datetime.strftime(datetime.now(), '%Y-%m-%d:%H-%M-%S')
+    filename = datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M-%S')
     if storage_type is None:
         storage_type = 'pq'
 
     return '.'.join([filename, storage_type])
 
 
-def get_table_s3_location(table_metadata):
-    full_path = table_metadata.loc[
-        table_metadata[0].str.strip() == 'Location:', 1].values[0]
+def get_table_metadata(table_name, schema_name):
+    create_stmt_query = "SHOW CREATE TABLE {schema_name}.{table_name}".format(
+        schema_name=schema_name,
+        table_name=table_name
+    )
+    table_metadata = run_query(create_stmt_query, 'hive')
+
+    bucket, path = get_table_s3_location_from_metadata(table_metadata)
+    storage_type = get_table_storage_type_from_metadata(table_metadata)
+
+    metadata_dict = {
+        'bucket': bucket,
+        'path': path,
+        'storage_type': storage_type
+    }
+    return metadata_dict
+
+
+def get_table_s3_location_from_metadata(table_metadata):
+    loc_label_idx = table_metadata.index[
+        table_metadata['createtab_stmt'].str.strip() == "LOCATION"].values[0]
+    location = table_metadata.loc[
+        loc_label_idx + 1, 'createtab_stmt'].strip()[1:-1]
 
     prefix = 's3://'
-    full_path = full_path[len(prefix):]
+    full_path = location[len(prefix):]
 
     bucket, path = full_path.split('/', 1)
     return bucket, path
 
 
-def get_table_storage_type(table_metadata):
+def get_table_storage_type_from_metadata(table_metadata):
     """
     Identifies the format a table's underlying files are stored in using
     the table's metadata.
@@ -56,12 +78,14 @@ def get_table_storage_type(table_metadata):
     Args:
         table_metadata (pd.DataFrame): Metadata of the table being examined
     """
-    hive_format_to_storage_type = {
+    hive_input_format_to_storage_type = {
         'org.apache.hadoop.mapred.TextInputFormat': 'csv',
         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat': 'pq'
     }
-
+    format_label_idx = table_metadata.index[
+        table_metadata['createtab_stmt'].str.strip() ==
+        "STORED AS INPUTFORMAT"].values[0]
     input_format = table_metadata.loc[
-        table_metadata[0].str.strip() == 'InputFormat:', 1].values[0]
+        format_label_idx + 1, 'createtab_stmt'].strip()[1:-1]
 
-    return hive_format_to_storage_type[input_format]
+    return hive_input_format_to_storage_type[input_format]

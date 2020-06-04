@@ -2,9 +2,10 @@ import os
 
 import river as rv
 
-from honeycomb import check, meta, run_query
+from honeycomb import check, meta
 from honeycomb.config import storage_type_specs
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
+from honeycomb.run_query import run_query
 
 
 schema_to_zone_bucket_map = {

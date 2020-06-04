@@ -1,6 +1,6 @@
 import river as rv
 
-from honeycomb import check, meta, run_query
+from honeycomb import check, meta
 from honeycomb.config import storage_type_specs
 
 
@@ -26,18 +26,11 @@ def append_table(df, table_name, schema_name='experimental', filename=None):
                 schema_name=schema_name,
                 table_name=table_name))
 
-    metadata_query = "DESCRIBE FORMATTED {schema_name}.{table_name}".format(
-        schema_name=schema_name,
-        table_name=table_name
-    )
+    table_metadata = meta.get_table_metadata(table_name, schema_name)
 
-    table_metadata = run_query(metadata_query, 'hive')
-    # Columns from this query just set the value in the first row
-    # as their name - can be confusing, so just setting it to numeric.
-    table_metadata.columns = [0, 1, 2]
-
-    bucket, path = meta.get_table_s3_location(table_metadata)
-    storage_type = meta.get_table_storage_type(table_metadata)
+    bucket = table_metadata['bucket']
+    path = table_metadata['path']
+    storage_type = table_metadata['storage_type']
 
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema_name, storage_type)
