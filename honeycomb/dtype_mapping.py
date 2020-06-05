@@ -42,7 +42,7 @@ def map_pd_to_db_dtypes(df):
     if any(df.dtypes == 'category'):
         raise TypeError('Pandas\' \'categorical\' type is not currently '
                         'supported. Contact honeycomb devs for further info.')
-    db_dtypes = df.dtypes
+    db_dtypes = df.dtypes.copy()
 
     for orig_type, new_type in dtype_map.items():
         # dtypes can be compared to their string representations for equality
