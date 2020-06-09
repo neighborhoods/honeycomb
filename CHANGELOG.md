@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Can create tables in Parquet format
 - Can generate filenames for new files being added to S3
 
+### Changed
+- Full table and column comments are required for creating a table outside of
+the experimental zone.
+
 ## [0.1.0] - 2020-05-11
 
 ### Added
