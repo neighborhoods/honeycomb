@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Can create tables in Parquet format
 - Can generate filenames for new files being added to S3
 
+### Changed
+- `create_table_from_df` and `append_table` now have overwrite protection.
+If a key is already present in S3, alarms will be raised unless explicitly
+told not to.
+
 ## [0.1.0] - 2020-05-11
 
 ### Added
