@@ -38,5 +38,10 @@ def append_table(df, table_name, schema_name='experimental', filename=None):
         path += '/'
     path += filename
 
+    if rv.exists(path, bucket):
+        raise KeyError('A file already exists at s3://' + bucket + path + ', '
+                       'Which will be overwritten by this operation. '
+                       'Specify a different filename to proceed.')
+
     storage_settings = storage_type_specs[storage_type]['settings']
     rv.write(df, path, bucket, **storage_settings)
