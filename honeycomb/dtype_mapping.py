@@ -1,4 +1,12 @@
-from honeycomb.config import dtype_map
+dtype_map = {
+    'object': 'STRING',
+    'int64': 'INT',
+    'float64': 'DOUBLE',
+    'bool': 'BOOLEAN',
+    'datetime64[ns]': 'DATETIME',
+    'timedelta64[ns]': 'INTERVAL'
+    # 'category': None
+}
 
 
 def apply_spec_dtypes(df, spec_dtypes):
@@ -14,7 +22,7 @@ def apply_spec_dtypes(df, spec_dtypes):
     Raises:
         TypeError: If casting 'df' to the new types fails
     """
-    for col_name, new_dtype in spec_dtypes:
+    for col_name, new_dtype in spec_dtypes.items():
         if col_name not in df.dtypes.keys():
             raise KeyError('Additional dtype casting failed: '
                            '\'{col_name}\' not in DataFrame.'.format(
@@ -40,8 +48,8 @@ def map_pd_to_db_dtypes(df):
         db_dtypes (dict<str:str>): A dict from column names to database dtypes
     """
     if any(df.dtypes == 'category'):
-        raise TypeError('Pandas\' \'categorical\' type is not currently '
-                        'supported. Contact honeycomb devs for further info.')
+        raise TypeError('Pandas\' \'categorical\' type is not supported. '
+                        'Contact honeycomb devs for further info.')
     db_dtypes = df.dtypes.copy()
 
     for orig_type, new_type in dtype_map.items():

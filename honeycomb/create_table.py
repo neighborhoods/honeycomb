@@ -3,7 +3,6 @@ import os
 import river as rv
 
 from honeycomb import check, meta, querying
-from honeycomb.config import storage_type_specs
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 
 
@@ -45,7 +44,7 @@ def build_create_table_ddl(schema, table_name, col_defs,
             header=False).replace('\n', ',\n'),
         table_comment=('COMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
-        storage_format_ddl=storage_type_specs[storage_type]['ddl'],
+        storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
         full_path=full_path.rsplit('/', 1)[0] + '/'
     )
 
@@ -100,7 +99,7 @@ def create_table_from_df(df, table_name, schema='experimental',
     s3_bucket = schema_to_zone_bucket_map[schema]
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
-    storage_settings = storage_type_specs[storage_type]['settings']
+    storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = rv.write(df, path, s3_bucket, **storage_settings)
 
     create_table_ddl = build_create_table_ddl(schema, table_name,

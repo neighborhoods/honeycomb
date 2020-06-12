@@ -1,7 +1,6 @@
 import river as rv
 
 from honeycomb import check, meta
-from honeycomb.config import storage_type_specs
 
 
 # TODO Sound alarm if appending will overwrite a file
@@ -38,5 +37,5 @@ def append_table(df, table_name, schema='experimental', filename=None):
         path += '/'
     path += filename
 
-    storage_settings = storage_type_specs[storage_type]['settings']
+    storage_settings = meta.storage_type_specs[storage_type]['settings']
     rv.write(df, path, bucket, **storage_settings)

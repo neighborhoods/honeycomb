@@ -3,6 +3,7 @@ from tempfile import NamedTemporaryFile
 
 import boto3
 from moto import mock_s3
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -47,6 +48,23 @@ def test_df():
         'intcol': [1, 2, 3],
         'strcol': ['four', 'five', 'six'],
         'floatcol': [7.0, 8.0, 9.0]
+    })
+
+
+@pytest.fixture
+def test_df_all_types():
+    """
+    Universal dataframe for use throughout testing. Multiple data types
+    used to test for proper encoding/decoding.
+    """
+    return pd.DataFrame({
+        'intcol': [1, 2],
+        'strcol': ['three', 'four'],
+        'floatcol': [5.0, 6.0],
+        'boolcol': [True, False],
+        'datetimecol': [
+            np.datetime64('2020-01-01'), np.datetime64('2020-01-02')],
+        'timedeltacol': [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
     })
 
 
