@@ -35,13 +35,14 @@ def test_schema():
 
 @pytest.fixture
 def test_df_key():
+    """Universal S3 key for a DataFrame used throughout testing"""
     return 'test_df.csv'
 
 
 @pytest.fixture
 def test_df():
     """
-    Universal dataframe for use throughout testing. Multiple data types
+    Dataframe for use throughout testing. Multiple data types
     used to test for proper encoding/decoding.
     """
     return pd.DataFrame({
@@ -54,8 +55,8 @@ def test_df():
 @pytest.fixture
 def test_df_all_types():
     """
-    Universal dataframe for use throughout testing. Multiple data types
-    used to test for proper encoding/decoding.
+    Dataframe for use throughout testing. Contains all data types
+    that are compatible with hive that will also be supported by honeycomb.
     """
     return pd.DataFrame({
         'intcol': [1, 2],

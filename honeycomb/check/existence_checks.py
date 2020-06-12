@@ -9,7 +9,7 @@ def check_schema_existence(schema_name, engine='presto'):
     similar_schemas = run_query(show_schemas_query, engine='hive')
     if similar_schemas is not None:
         # NOTE: 'database' and 'schema' are interchangeable terms in Hive
-        if schema_name in similar_schemas['database_name'].values:
+        if schema_name in similar_schemas['database_name']:
             return True
     return False
 
@@ -32,6 +32,6 @@ def check_table_existence(schema_name, table_name, engine='presto'):
     )
 
     similar_tables = run_query(show_tables_query, engine='hive')
-    if table_name in similar_tables['tab_name'].values:
+    if table_name in similar_tables['tab_name']:
         return True
     return False

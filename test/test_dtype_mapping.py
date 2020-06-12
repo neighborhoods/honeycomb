@@ -6,6 +6,7 @@ from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 
 
 def test_map_pd_to_db_dtypes(test_df_all_types):
+    """Tests that dtype mapping behaves as expected under valid conditions"""
     mapped_dtypes = map_pd_to_db_dtypes(test_df_all_types)
 
     expected_dtypes = pd.Series({
@@ -21,6 +22,10 @@ def test_map_pd_to_db_dtypes(test_df_all_types):
 
 
 def test_map_pd_to_db_dtypes_categorical_fails():
+    """
+    Tests that dtype mapping fails if a dataframe contains the unsupported
+    categorical type
+    """
     df = pd.DataFrame({
         'catcol': pd.Series(pd.Categorical([1, 2, 3, 4], categories=[1, 2, 3]))
     })
@@ -30,6 +35,10 @@ def test_map_pd_to_db_dtypes_categorical_fails():
 
 
 def test_apply_spec_dtypes(test_df_all_types):
+    """
+    Tests that applying specified dtypes behaves as expected under
+    valid conditions
+    """
     casted_df = apply_spec_dtypes(
         test_df_all_types, spec_dtypes={
             'intcol': float,
@@ -44,10 +53,18 @@ def test_apply_spec_dtypes(test_df_all_types):
 
 
 def test_apply_spec_dtypes_extra_col(test_df_all_types):
+    """
+    Tests that applying specified dtypes fails if columns are specfied
+    that are not present in the dataframe
+    """
     with pytest.raises(KeyError, match='not in DataFrame'):
         apply_spec_dtypes(test_df_all_types, {'extracol': None})
 
 
 def test_apply_spec_dtypes_invalid_type(test_df_all_types):
+    """
+    Tests that applying specified dtypes fails if a type that is
+    incompatible with pandas is supplied
+    """
     with pytest.raises(TypeError, match='Casting .* failed'):
         apply_spec_dtypes(test_df_all_types, {'intcol': 'invalid_type'})
