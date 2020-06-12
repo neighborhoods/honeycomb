@@ -2,10 +2,9 @@ import os
 
 import river as rv
 
-from honeycomb import check, meta
+from honeycomb import check, meta, querying
 from honeycomb.config import storage_type_specs
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
-from honeycomb.run_query import run_query
 
 
 schema_to_zone_bucket_map = {
@@ -30,17 +29,17 @@ def add_comments_to_col_defs(col_defs, comments):
     return col_defs
 
 
-def build_create_table_ddl(schema_name, table_name, col_defs,
+def build_create_table_ddl(schema, table_name, col_defs,
                            table_comment, storage_type, full_path):
     create_table_ddl = """
-    CREATE EXTERNAL TABLE {schema_name}.{table_name} (
+    CREATE EXTERNAL TABLE {schema}.{table_name} (
     {columns_and_types}
     )
     {table_comment}
     {storage_format_ddl}
     LOCATION 's3://{full_path}'
     """.format(
-        schema_name=schema_name,
+        schema=schema,
         table_name=table_name,
         columns_and_types=col_defs.to_string(
             header=False).replace('\n', ',\n'),
@@ -54,7 +53,7 @@ def build_create_table_ddl(schema_name, table_name, col_defs,
 
 
 # TODO add presto support?
-def create_table_from_df(df, table_name, schema_name='experimental',
+def create_table_from_df(df, table_name, schema='experimental',
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None):
     """
@@ -63,7 +62,7 @@ def create_table_from_df(df, table_name, schema_name='experimental',
     Args:
         df (pd.DataFrame): The DataFrame to create the tabale from.
         table_name (str): The name of the table to be created
-        schema_name (str): The name of the schema to create the table in
+        schema (str): The name of the schema to create the table in
         dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
             specific columns to be cast to prior to uploading.
         path (str, optional): Folder in S3 to store all files for this table in
@@ -79,18 +78,17 @@ def create_table_from_df(df, table_name, schema_name='experimental',
     if path is None:
         path = table_name
     if filename is None:
-        filename = meta.gen_filename_if_allowed(schema_name)
+        filename = meta.gen_filename_if_allowed(schema)
 
     if not path.endswith('/'):
         path += '/'
     path += filename
 
-    table_exists = check.table_existence(
-        schema_name, table_name, engine='hive')
+    table_exists = check.table_existence(schema, table_name, engine='hive')
     if table_exists:
         raise ValueError(
-            'Table \'{schema_name}.{table_name}\' already exists. '.format(
-                schema_name=schema_name,
+            'Table \'{schema}.{table_name}\' already exists. '.format(
+                schema=schema,
                 table_name=table_name))
 
     if dtypes is not None:
@@ -99,14 +97,14 @@ def create_table_from_df(df, table_name, schema_name='experimental',
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
 
-    s3_bucket = schema_to_zone_bucket_map[schema_name]
+    s3_bucket = schema_to_zone_bucket_map[schema]
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     storage_settings = storage_type_specs[storage_type]['settings']
     full_path = rv.write(df, path, s3_bucket, **storage_settings)
 
-    create_table_ddl = build_create_table_ddl(schema_name, table_name,
+    create_table_ddl = build_create_table_ddl(schema, table_name,
                                               col_defs, table_comment,
                                               storage_type, full_path)
     print(create_table_ddl)
-    run_query(create_table_ddl, engine='hive')
+    querying.run_query(create_table_ddl, engine='hive')

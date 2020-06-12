@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from honeycomb.run_query import run_query
+from honeycomb.querying import run_query
 
 
 def gen_filename_if_allowed(schema_name, storage_type=None):

@@ -1,4 +1,4 @@
-from honeycomb.run_query import run_query
+from honeycomb.querying import run_query
 
 
 def check_schema_existence(schema_name, engine='presto'):
