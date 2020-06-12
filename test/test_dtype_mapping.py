@@ -1,6 +1,5 @@
 import pytest
 
-import numpy as np
 import pandas as pd
 
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Unit tests added for `create_table.py`, `append_table.py`, and `dtype_mapping.py`
+
+### Added
 - Table appending logic
 - Functionality to create a table with both table and column comments
 - Can create tables in Parquet format
