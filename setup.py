@@ -69,7 +69,7 @@ setup(
     install_requires=[
         'pandas>=1.0.0',
         'pyhive>=0.6.1',
-        'river>=0.1.1'  # Must configure NHDS PyPi as an external url for pip
+        'river>=0.1.1',  # Must configure NHDS PyPi as an external url for pip
         'thrift>=0.13.0'
     ],
     cmdclass={
