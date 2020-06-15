@@ -71,7 +71,6 @@ setup(
         'pandas>=1.0.0',
         'pyhive>=0.6.1',
         'river>=0.1.1'  # Must configure NHDS PyPi as an external url for pip
-        'sasl>=0.2.1'
     ],
     cmdclass={
         'upload': UploadCommand,

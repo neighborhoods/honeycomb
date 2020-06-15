@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Full table and column comments are required for creating a table outside of
 the experimental zone.
+- `create_table_from_df` and `append_table` now have overwrite protection.
+If a key is already present in S3, alarms will be raised unless explicitly
+told not to.
 
 ## [0.1.0] - 2020-05-11
 
