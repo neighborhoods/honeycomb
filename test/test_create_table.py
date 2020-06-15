@@ -40,9 +40,7 @@ def test_create_table_from_df_already_exists(mocker, test_df):
 
 
 def test_add_comments_to_col_defs(test_df):
-    """
-    Tests that comments are added to column definitions as expected
-    """
+    """Tests that comments are added to column definitions as expected"""
     col_defs = pd.Series(
         data=[
             'object', 'int64', 'float64',
