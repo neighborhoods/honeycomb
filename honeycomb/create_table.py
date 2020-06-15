@@ -51,10 +51,11 @@ def build_create_table_ddl(schema, table_name, col_defs,
     return create_table_ddl
 
 
-# TODO add presto support?
+# NOTE add presto support?
 def create_table_from_df(df, table_name, schema='experimental',
                          dtypes=None, path=None, filename=None,
-                         table_comment=None, col_comments=None):
+                         table_comment=None, col_comments=None,
+                         overwrite=False):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -83,6 +84,14 @@ def create_table_from_df(df, table_name, schema='experimental',
         path += '/'
     path += filename
 
+    bucket = schema_to_zone_bucket_map[schema_name]
+
+    if not overwrite and rv.exists(path, bucket):
+        raise KeyError('A file already exists at s3://' + bucket + path + ', '
+                       'Which will be overwritten by this operation. '
+                       'If this is desired, set "overwrite" to True. '
+                       'Otherwise, specify a different filename.')
+
     table_exists = check.table_existence(schema, table_name, engine='hive')
     if table_exists:
         raise ValueError(
@@ -96,11 +105,9 @@ def create_table_from_df(df, table_name, schema='experimental',
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
 
-    s3_bucket = schema_to_zone_bucket_map[schema]
-
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     storage_settings = meta.storage_type_specs[storage_type]['settings']
-    full_path = rv.write(df, path, s3_bucket, **storage_settings)
+    full_path = rv.write(df, path, bucket, **storage_settings)
 
     create_table_ddl = build_create_table_ddl(schema, table_name,
                                               col_defs, table_comment,

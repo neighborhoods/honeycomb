@@ -3,8 +3,6 @@ import river as rv
 from honeycomb import check, meta
 
 
-# TODO Sound alarm if appending will overwrite a file
-# (waiting on river release)
 def append_table(df, table_name, schema='experimental', filename=None):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
@@ -36,6 +34,11 @@ def append_table(df, table_name, schema='experimental', filename=None):
     if not path.endswith('/'):
         path += '/'
     path += filename
+
+    if rv.exists(path, bucket):
+        raise KeyError('A file already exists at s3://' + bucket + path + ', '
+                       'Which will be overwritten by this operation. '
+                       'Specify a different filename to proceed.')
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     rv.write(df, path, bucket, **storage_settings)
