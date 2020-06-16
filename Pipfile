@@ -10,7 +10,7 @@ verify_ssl = true
 
 [dev-packages]
 flake8 = "==3.7.9"
-pipenv-devcheck = "==0.2.1"
+pipenv-devcheck = "==0.3.0"
 pytest = "==5.3.5"
 pytest-mock = "==2.0.0"
 thrift = "==0.13.0"
