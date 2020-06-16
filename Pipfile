@@ -5,7 +5,7 @@ verify_ssl = true
 
 [[source]]
 name = "neighborhoods"
-url = "https://${NHDS_PYPI_USERNAME}:${NHDS_PYPI_PASSWORD}@pypi.neighborhoods.com/simple"
+url = "https://$NHDS_PYPI_USERNAME:${NHDS_PYPI_PASSWORD}@pypi.neighborhoods.com/simple"
 verify_ssl = true
 
 [dev-packages]
