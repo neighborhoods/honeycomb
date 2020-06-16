@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "0546c284c1c4aef5d1468ab4f5f39ef0cfbc28241f58e5f9a52713ef749ea6bf"
+            "sha256": "beefe4e260c539320231d3d9eafdac6c0091c014aca6c96cebf8f5ad791ef3e8"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -15,7 +15,7 @@
             },
             {
                 "name": "neighborhoods",
-                "url": "https://$NHDS_PYPI_USERNAME:${NHDS_PYPI_PASSWORD}@pypi.neighborhoods.com/simple",
+                "url": "https://${NHDS_PYPI_USERNAME}:${NHDS_PYPI_PASSWORD}@pypi.neighborhoods.com/simple",
                 "verify_ssl": true
             }
         ]
