@@ -8,4 +8,4 @@ RUN echo "NHDS_PYPI_USERNAME: $NHDS_PYPI_USERNAME"
 
 COPY . .
 RUN pip install pipenv
-RUN pipenv install --dev --ignore-pipfile --system
+RUN pipenv install --dev --ignore-pipfile --system -v
