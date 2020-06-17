@@ -68,8 +68,16 @@ setup(
     packages=find_packages(),
     install_requires=[
         'pandas>=1.0.0',
-        'pyhive>=0.6.1',
-        'river>=0.2.0'  # Must configure NHDS PyPi as an external url for pip
+        'pyhive[hive,presto]>=0.6.1',
+        ('river @ '
+         'https://pypi.neighborhoods.com/api/package/river/river-0.2.0.tar.gz')
+    ],
+    tests_require=[
+        'flake8>=3.7.9',
+        'moto>=3.14',
+        'pipenv-devcheck>=0.3.0',
+        'pytest>=5.3.5',
+        'pytest-mock>=2.0.0'
     ],
     cmdclass={
         'upload': UploadCommand,

@@ -21,19 +21,19 @@ storage_type_specs = {
 }
 
 
-def gen_filename_if_allowed(schema_name, storage_type=None):
+def gen_filename_if_allowed(schema, storage_type=None):
     """
     Pass-through to name generation fn, if writing to the experimental zone
 
     Args:
-        schema_name (str):
+        schema (str):
             The name of the schema to be written to.
             Used to determine if a generated filename is permitted.
         storage_type (str, optional):
             Desired storage format of file to be stored. Passed through to
             'generate_s3_filename'
     """
-    if schema_name == 'experimental':
+    if schema == 'experimental':
         filename = generate_s3_filename(storage_type)
         return filename
     else:
@@ -57,9 +57,9 @@ def generate_s3_filename(storage_type=None):
     return '.'.join([filename, storage_type])
 
 
-def get_table_metadata(table_name, schema_name):
-    create_stmt_query = "SHOW CREATE TABLE {schema_name}.{table_name}".format(
-        schema_name=schema_name,
+def get_table_metadata(table_name, schema):
+    create_stmt_query = "SHOW CREATE TABLE {schema}.{table_name}".format(
+        schema=schema,
         table_name=table_name
     )
     table_metadata = run_query(create_stmt_query, 'hive')
