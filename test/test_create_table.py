@@ -12,8 +12,6 @@ def test_create_table_from_df_csv(mocker, setup_bucket_wo_contents,
     Tests that a table has successfully been created in the lake by checking
     for presence of the DataFrame at the expected location in S3
     """
-    mocker.patch.dict('honeycomb.create_table.schema_to_zone_bucket_map',
-                      {test_schema: test_bucket}, clear=True)
     mocker.patch('honeycomb.querying.run_query', return_value=False)
     mocker.patch('honeycomb.check.table_existence', return_value=False)
     mocker.patch('honeycomb.create_table.check_for_comments')
@@ -36,8 +34,6 @@ def test_create_table_from_df_already_exists(mocker, setup_bucket_wo_contents,
     Tests that creating a table will fail if a table already exists
     with the same name
     """
-    mocker.patch.dict('honeycomb.create_table.schema_to_zone_bucket_map',
-                      {test_schema: test_bucket}, clear=True)
     mocker.patch('honeycomb.check.table_existence', return_value=True)
     mocker.patch('honeycomb.create_table.check_for_comments')
 
