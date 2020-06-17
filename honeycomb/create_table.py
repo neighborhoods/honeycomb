@@ -53,6 +53,66 @@ def build_create_table_ddl(schema_name, table_name, col_defs,
     return create_table_ddl
 
 
+def check_for_comments(table_comment, columns, col_comments):
+    """
+    Checks that table and column comments are all present.
+
+    Args:
+        table_comment (str): Value to be used as a table comment in a new table
+        columns (pd.Index): Columns of the dataframe to be uploaded to the lake
+        col_comments (dict<str, str>):
+            Dictionary from column name keys to column comment values
+    Raises:
+        TypeError:
+            * If either 'table_comment' is not a string
+            * If any of the comment values in 'col_comments' are not strings
+        ValueError:
+            * If the table comment is 0-1 characters long
+            (discourages cheating)
+            * If not all columns present in the dataframe to be uploaded
+            exist in 'col_comments'
+            * If 'col_comments' contains columns that are not present in the
+            dataframe
+    """
+    if not isinstance(table_comment, str):
+        raise TypeError('"table_comment" must be a string.')
+
+    if not len(table_comment) > 1:
+        raise ValueError('A table comment is required when creating a table '
+                         'outside of the experimental zone.')
+
+    cols_missing_from_comments = columns[columns.isin(col_comments.keys())]
+    if not all(columns.isin(col_comments.keys())):
+        raise ValueError('All columns must be present in the "col_comments" '
+                         'dictionary with a proper comment when writing '
+                         'outside the experimental zone. Columns missing: ' +
+                         ', '.join(cols_missing_from_comments))
+
+    extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
+    if extra_comments_in_dict:
+        raise ValueError('Columns present in "col_comments" that are not '
+                         'present in the DataFrame. Extra columns: ' +
+                         ', '.join(extra_comments_in_dict))
+
+    cols_w_nonstring_comments = []
+    cols_wo_comment = []
+    for col, comment in col_comments.items():
+        if not isinstance(comment, str):
+            cols_w_nonstring_comments.append(str(col))
+        if not len(comment) > 1:
+            cols_wo_comment.append(str(col))
+
+    if cols_w_nonstring_comments:
+        raise TypeError('Column comments must be strings. Columns with '
+                        'incorrect comment types: ' +
+                        ', '.join(cols_w_nonstring_comments))
+    if cols_wo_comment:
+        raise ValueError('A column comment is required for each column when '
+                         'creating a table outside of the experimental zone. '
+                         'Columns that require comments: ' +
+                         ', '.join(cols_wo_comment))
+
+
 # TODO add presto support?
 def create_table_from_df(df, table_name, schema_name='experimental',
                          dtypes=None, path=None, filename=None,
@@ -77,6 +137,9 @@ def create_table_from_df(df, table_name, schema_name='experimental',
         col_comments (dict<str:str>, optional):
             Dictionary from column name keys to column descriptions.
     """
+    if schema_name != 'experimental':
+        check_for_comments(table_comment, df.columns, col_comments)
+
     if path is None:
         path = table_name
     if filename is None:
