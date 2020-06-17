@@ -1,8 +1,6 @@
 from pyhive import hive, presto
 
 
-# TODO BigQuery connection?
-# TODO context decorator
 def get_db_connection(engine='hive', addr='localhost', cursor=True):
     """
     Initializes and returns a connection to the specified database engine.

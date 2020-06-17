@@ -1,9 +1,11 @@
-import pandas as pd
-
-from honeycomb.connection import get_db_connection
+from honeycomb import querying
 
 
-def describe_table(schema_name, table_name, engine='presto'):
+# Hive and Presto return 'DESCRIBE' queries differently, and
+# Presto does not support the 'FORMATTED' keyword, so
+# we're locking the engine for 'DESCRIBE' queries to Hive for now
+def describe_table(table_name, schema_name='experimental',
+                   engine='presto', include_metadata=False):
     """
     Retrieves the description of a specific table in hive
 
@@ -14,9 +16,9 @@ def describe_table(schema_name, table_name, engine='presto'):
         desc (pd.DataFrame): A dataframe containing descriptive information
             on the specified table
     """
-    with get_db_connection(engine=engine, cursor=False) as conn:
-        desc_query = 'DESCRIBE EXTENDED {schema_name}.{table_name}'.format(
-            schema_name=schema_name,
-            table_name=table_name)
-        desc = pd.read_sql(desc_query, conn)
+    desc_query = 'DESCRIBE {formatted}{schema_name}.{table_name}'.format(
+        formatted=('FORMATTED ' if include_metadata else ''),
+        schema_name=schema_name,
+        table_name=table_name)
+    desc = querying.run_query(desc_query, engine)
     return desc

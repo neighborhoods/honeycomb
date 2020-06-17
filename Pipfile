@@ -13,11 +13,8 @@ flake8 = "==3.7.9"
 pipenv-devcheck = "==0.3.0"
 pytest = "==5.3.5"
 pytest-mock = "==2.0.0"
-thrift = "==0.13.0"
-thrift-sasl = "==0.3.0"
 
 [packages]
-boto3 = "==1.13.7"
 pandas = "==1.0.1"
 pyhive = "==0.6.1"
 river = {version = "==0.2.0",index = "neighborhoods"}

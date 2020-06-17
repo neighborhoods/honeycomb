@@ -67,10 +67,9 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(),
     install_requires=[
-        'boto3>=1.10.0',
         'pandas>=1.0.0',
         'pyhive>=0.6.1',
-        'river>=0.1.1'  # Must configure NHDS PyPi as an external url for pip
+        'river>=0.2.0'  # Must configure NHDS PyPi as an external url for pip
     ],
     cmdclass={
         'upload': UploadCommand,
