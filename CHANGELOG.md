@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Switched to standard NHDS CI pipeline
+
 ### Added
 - Table appending logic
 - Functionality to create a table with both table and column comments
