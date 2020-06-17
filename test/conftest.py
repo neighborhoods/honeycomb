@@ -21,6 +21,12 @@ def aws_credentials():
     os.environ['AWS_SESSION_TOKEN'] = 'testing'
 
 
+@pytest.fixture()
+def mock_bucket_map(mocker, test_schema, test_bucket):
+    mocker.patch.dict('honeycomb.create_table.schema_to_zone_bucket_map',
+                      {test_schema: test_bucket}, clear=True)
+
+
 @pytest.fixture
 def test_bucket():
     """Universal bucket name for use throughout testing"""
@@ -30,7 +36,7 @@ def test_bucket():
 @pytest.fixture
 def test_schema():
     """Universal schema name for use throughout testing"""
-    return 'test_schema'
+    return 'experimental'
 
 
 @pytest.fixture
@@ -77,7 +83,7 @@ def mock_s3_client():
 
 
 @pytest.fixture
-def setup_bucket_wo_contents(mock_s3_client, test_bucket):
+def setup_bucket_wo_contents(mock_s3_client, mock_bucket_map, test_bucket):
     """Sets up a bucket with no contents."""
     s3 = boto3.client('s3')
     s3.create_bucket(Bucket=test_bucket)
@@ -86,7 +92,8 @@ def setup_bucket_wo_contents(mock_s3_client, test_bucket):
 
 
 @pytest.fixture
-def setup_bucket_w_contents(mock_s3_client, test_bucket, test_df_key, test_df):
+def setup_bucket_w_contents(mock_s3_client, mock_bucket_map,
+                            test_bucket, test_df_key, test_df):
     """Sets up a bucket with no contents."""
     s3 = boto3.client('s3')
     s3.create_bucket(Bucket=test_bucket)

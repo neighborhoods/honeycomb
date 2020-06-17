@@ -16,6 +16,7 @@ def test_create_table_from_df_csv(mocker, setup_bucket_wo_contents,
                       {test_schema: test_bucket}, clear=True)
     mocker.patch('honeycomb.querying.run_query', return_value=False)
     mocker.patch('honeycomb.check.table_existence', return_value=False)
+    mocker.patch('honeycomb.create_table.check_for_comments')
 
     table_name = 'test_table'
     filename = 'test_file.csv'
@@ -28,15 +29,20 @@ def test_create_table_from_df_csv(mocker, setup_bucket_wo_contents,
     assert (df.values == test_df.values).all()
 
 
-def test_create_table_from_df_already_exists(mocker, test_df):
+def test_create_table_from_df_already_exists(mocker, setup_bucket_wo_contents,
+                                             test_schema, test_bucket,
+                                             test_df):
     """
     Tests that creating a table will fail if a table already exists
     with the same name
     """
+    mocker.patch.dict('honeycomb.create_table.schema_to_zone_bucket_map',
+                      {test_schema: test_bucket}, clear=True)
     mocker.patch('honeycomb.check.table_existence', return_value=True)
+    mocker.patch('honeycomb.create_table.check_for_comments')
 
     with pytest.raises(ValueError, match='already exists'):
-        create_table_from_df(test_df, 'test_table')
+        create_table_from_df(test_df, 'test_table', schema=test_schema)
 
 
 def test_add_comments_to_col_defs(test_df):
