@@ -1,6 +1,24 @@
 from datetime import datetime
 
-from honeycomb.run_query import run_query
+from honeycomb.querying import run_query
+
+storage_type_specs = {
+    'csv': {
+        'settings': {
+            'index': False,
+            'header': False
+        },
+        'ddl': """
+               ROW FORMAT DELIMITED
+               FIELDS TERMINATED BY ','
+               LINES TERMINATED BY '\\n'
+               """
+    },
+    'pq': {
+        'settings': {},
+        'ddl': 'STORED AS PARQUET'
+    }
+}
 
 
 def gen_filename_if_allowed(schema_name, storage_type=None):

@@ -2,7 +2,7 @@ from .append_table import append_table
 from .create_table import create_table_from_df
 from .describe_table import describe_table
 from .meta import get_table_storage_type_from_metadata
-from .run_query import run_query
+from .querying import run_query
 from . import check
 
 __all__ = [
