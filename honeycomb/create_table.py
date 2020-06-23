@@ -110,7 +110,7 @@ def check_for_comments(table_comment, columns, col_comments):
                          'Columns that require comments: ' +
                          ', '.join(cols_wo_comment))
 
-# NOTE add presto support?
+
 def create_table_from_df(df, table_name, schema='experimental',
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
