@@ -29,6 +29,8 @@ a result the average use case of it is very straightforward.
         the only data stored there is clickstream data and cost information on
         our GA/GBQ accounts. Must provide a project ID, dataset, and table name
         in queries.
+            * NOTE: BigQuery uses different SQL syntax than the lake, and this
+            must be reflected in your queries.
 
 ### Running Queries
 The `run_query` function allows for running queries through multiple different
