@@ -5,7 +5,7 @@ from honeycomb import querying
 # Presto does not support the 'FORMATTED' keyword, so
 # we're locking the engine for 'DESCRIBE' queries to Hive for now
 def describe_table(table_name, schema='experimental',
-                   engine='presto', include_metadata=False):
+                   include_metadata=False):
     """
     Retrieves the description of a specific table in hive
 
@@ -16,6 +16,7 @@ def describe_table(table_name, schema='experimental',
         desc (pd.DataFrame): A dataframe containing descriptive information
             on the specified table
     """
+    engine = 'hive'
     desc_query = 'DESCRIBE {formatted}{schema}.{table_name}'.format(
         formatted=('FORMATTED ' if include_metadata else ''),
         schema=schema,

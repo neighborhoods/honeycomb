@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Can create tables in Parquet format
 - Can generate filenames for new files being added to S3
 - Unit tests added for `create_table.py`, `append_table.py`, and `dtype_mapping.py`
+- General usage documentation
 
 ### Changed
 - Full table and column comments are required for creating a table outside of
