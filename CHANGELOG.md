@@ -14,13 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Can generate filenames for new files being added to S3
 - Unit tests added for `create_table.py`, `append_table.py`, and `dtype_mapping.py`
 - General usage documentation
+- `create_table_from_df` now has overwrite protection. If a table already exists
+with the name specified, the function can either fail or be set to drop the
+old table and remove its underlying files.
+-`append_table` now has overwrite protection. If a conflicting key is already
+present in S3, the function will fail.
 
 ### Changed
 - Full table and column comments are required for creating a table outside of
 the experimental zone.
-- `create_table_from_df` and `append_table` now have overwrite protection.
-If a key is already present in S3, alarms will be raised unless explicitly
-told not to.
+
 
 ## [0.1.0] - 2020-05-11
 
