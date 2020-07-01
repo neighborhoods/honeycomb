@@ -197,7 +197,6 @@ def create_table_from_df(df, table_name, schema='experimental',
 def __nuke_table(table_name, schema):
     """
     USE AT YOUR OWN RISK. THIS OPERATION IS NOT REVERSIBLE.
-    With great power comes great consequences for the devs if not
 
     Drop a table from the lake metastore and completely remove all of its
     underlying files from S3.
