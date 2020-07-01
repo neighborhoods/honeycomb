@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `create_table_from_df` now has overwrite protection. If a table already exists
 with the name specified, the function can either fail or be set to drop the
 old table and remove its underlying files.
--`append_table` now has overwrite protection. If a conflicting key is already
+- `append_table` now has overwrite protection. If a conflicting key is already
 present in S3, the function will fail.
 
 ### Changed
