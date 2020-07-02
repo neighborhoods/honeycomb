@@ -58,6 +58,10 @@ it defaults to writing to the 'experimental' zone.
 on the extension of the provided `filename`. If `filename` is not provided or
 does not contain an extension, it will default to Parquet.
 
+An empty directory is expected for a table's underlying storage.
+If files are already present in the S3 path designated to store files
+for the new table, table creation will fail.
+
 Additional parameters:
 1. `schema`: The schema to write to. Most users will only have access to write
 to the 'experimental' zone.
@@ -78,8 +82,9 @@ but with any other zone it is required.
 6. `column_comments`: A dictionary from column names to a plaintext description
 of what the column contains. This is optional when writing to the experimental zone,
 but with any other zone it is required.
-7. `overwrite`: States whether it is okay to overwrite a file if this function's
-write operation encounters an identically named file in S3. - WILL BE MODIFIED SOON
+7. `overwrite`: In the case of a table already existing with the specified
+name, states whether to drop a table and completely remove its underlying files
+or throw errors. In any other case, this parameter does nothing.
 ```
 import pandas as pd
 import honeycomb as hc

@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 import river as rv
 
@@ -136,30 +137,45 @@ def create_table_from_df(df, table_name, schema='experimental',
     """
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
+        if overwrite:
+            raise ValueError('Overwrite functionality is only available in '
+                             'the experimental zone. Contact a lake '
+                             'administrator if modification of a non-'
+                             'experimental table is needed.')
 
     if path is None:
         path = table_name
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
-
     if not path.endswith('/'):
         path += '/'
-    path += filename
 
     bucket = schema_to_zone_bucket_map[schema]
+
+    table_exists = check.table_existence(schema, table_name, engine='hive')
+    if table_exists:
+        if not overwrite:
+            raise ValueError(
+                'Table \'{schema}.{table_name}\' already exists. '.format(
+                    schema=schema,
+                    table_name=table_name))
+        else:
+            __nuke_table(table_name, schema)
+
+    if rv.list(path, bucket):
+        raise KeyError('Files are already present in s3://{}{}. '
+                       'Creation of a new table requires a dedicated, '
+                       'empty folder.'
+                       'If this is desired, set "overwrite" to True. '
+                       'Otherwise, specify a different filename.')
+
+    path += filename
 
     if not overwrite and rv.exists(path, bucket):
         raise KeyError('A file already exists at s3://' + bucket + path + ', '
                        'Which will be overwritten by this operation. '
                        'If this is desired, set "overwrite" to True. '
                        'Otherwise, specify a different filename.')
-
-    table_exists = check.table_existence(schema, table_name, engine='hive')
-    if table_exists:
-        raise ValueError(
-            'Table \'{schema}.{table_name}\' already exists. '.format(
-                schema=schema,
-                table_name=table_name))
 
     if dtypes is not None:
         df = apply_spec_dtypes(df, dtypes)
@@ -176,3 +192,30 @@ def create_table_from_df(df, table_name, schema='experimental',
                                               storage_type, full_path)
     print(create_table_ddl)
     querying.run_query(create_table_ddl, engine='hive')
+
+
+def __nuke_table(table_name, schema):
+    """
+    USE AT YOUR OWN RISK. THIS OPERATION IS NOT REVERSIBLE.
+
+    Drop a table from the lake metastore and completely remove all of its
+    underlying files from S3.
+
+    Args:
+        table_name (str): Name of the table to drop
+        schema (str): Schema the table is in
+    """
+    table_metadata = meta.get_table_metadata(table_name, schema)
+    current_bucket = table_metadata['bucket']
+    current_path = table_metadata['path']
+    querying.run_query('DROP TABLE IF EXISTS {}.{}'.format(
+        schema,
+        table_name
+    ))
+    rm_command = 'aws s3 rm --recursive s3://{}/{}'.format(
+        current_bucket,
+        current_path
+    )
+    cp_process = subprocess.Popen(rm_command.split(),
+                                  stdout=subprocess.PIPE)
+    output, error = cp_process.communicate()
