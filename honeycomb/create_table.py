@@ -3,7 +3,7 @@ import subprocess
 
 import river as rv
 
-from honeycomb import check, meta, querying
+from honeycomb import check, meta, run_query as run
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 
 
@@ -152,7 +152,7 @@ def create_table_from_df(df, table_name, schema='experimental',
 
     bucket = schema_to_zone_bucket_map[schema]
 
-    table_exists = check.table_existence(schema, table_name, engine='hive')
+    table_exists = check.table_existence(schema, table_name)
     if table_exists:
         if not overwrite:
             raise ValueError(
@@ -162,20 +162,21 @@ def create_table_from_df(df, table_name, schema='experimental',
         else:
             __nuke_table(table_name, schema)
 
-    if rv.list(path, bucket):
-        raise KeyError('Files are already present in s3://{}{}. '
-                       'Creation of a new table requires a dedicated, '
-                       'empty folder.'
-                       'If this is desired, set "overwrite" to True. '
-                       'Otherwise, specify a different filename.')
+    if rv.list_objects(path, bucket):
+        raise KeyError(('Files are already present in s3://{}/{}. '
+                        'Creation of a new table requires a dedicated, '
+                        'empty folder.'
+                        'If this is desired, set "overwrite" to True. '
+                        'Otherwise, specify a different filename.').format(
+                            bucket, path)
+                       )
 
     path += filename
 
     if not overwrite and rv.exists(path, bucket):
         raise KeyError('A file already exists at s3://' + bucket + path + ', '
                        'Which will be overwritten by this operation. '
-                       'If this is desired, set "overwrite" to True. '
-                       'Otherwise, specify a different filename.')
+                       'Specify a different filename.')
 
     if dtypes is not None:
         df = apply_spec_dtypes(df, dtypes)
@@ -191,7 +192,7 @@ def create_table_from_df(df, table_name, schema='experimental',
                                               col_defs, table_comment,
                                               storage_type, full_path)
     print(create_table_ddl)
-    querying.run_query(create_table_ddl, engine='hive')
+    run.lake_query(create_table_ddl, engine='hive')
 
 
 def __nuke_table(table_name, schema):
@@ -208,7 +209,7 @@ def __nuke_table(table_name, schema):
     table_metadata = meta.get_table_metadata(table_name, schema)
     current_bucket = table_metadata['bucket']
     current_path = table_metadata['path']
-    querying.run_query('DROP TABLE IF EXISTS {}.{}'.format(
+    run.lake_query('DROP TABLE IF EXISTS {}.{}'.format(
         schema,
         table_name
     ))
@@ -216,6 +217,7 @@ def __nuke_table(table_name, schema):
         current_bucket,
         current_path
     )
+    print(rm_command)
     cp_process = subprocess.Popen(rm_command.split(),
                                   stdout=subprocess.PIPE)
     output, error = cp_process.communicate()

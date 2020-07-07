@@ -3,10 +3,14 @@ import pandas as pd
 from honeycomb.connection import get_db_connection
 
 
-def run_query(query, engine='presto'):
+def lake_query(query, engine='presto'):
     """
     General wrapper function around querying with different engines
     """
+    query_fns = {
+        'presto': _presto_query,
+        'hive': _hive_query,
+    }
     query_fn = query_fns[engine]
     df = query_fn(query)
     return df
@@ -49,18 +53,3 @@ def _presto_query(query):
     else:
         conn = get_db_connection('presto', cursor=True)
         conn.execute(query)
-
-
-def _gbq_query(query, project_id):
-    """
-    BigQuery-specific query function
-    """
-    df = pd.read_gbq(query, project_id=project_id)
-    return df
-
-
-query_fns = {
-    'presto': _presto_query,
-    'hive': _hive_query,
-    'gbq': _gbq_query
-}
