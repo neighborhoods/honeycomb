@@ -135,6 +135,8 @@ def create_table_from_df(df, table_name, schema='experimental',
         col_comments (dict<str:str>, optional):
             Dictionary from column name keys to column descriptions.
     """
+    table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
         if overwrite:
@@ -152,7 +154,7 @@ def create_table_from_df(df, table_name, schema='experimental',
 
     bucket = schema_to_zone_bucket_map[schema]
 
-    table_exists = check.table_existence(schema, table_name, engine='hive')
+    table_exists = check.table_existence(table_name, schema, engine='hive')
     if table_exists:
         if not overwrite:
             raise ValueError(

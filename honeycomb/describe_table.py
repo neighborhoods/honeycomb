@@ -1,4 +1,4 @@
-from honeycomb import querying
+from honeycomb import querying, meta
 
 
 # Hive and Presto return 'DESCRIBE' queries differently, and
@@ -16,6 +16,8 @@ def describe_table(table_name, schema_name='experimental',
         desc (pd.DataFrame): A dataframe containing descriptive information
             on the specified table
     """
+    table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
     engine = 'hive'
     desc_query = 'DESCRIBE {formatted}{schema_name}.{table_name}'.format(
         formatted=('FORMATTED ' if include_metadata else ''),
