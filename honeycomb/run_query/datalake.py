@@ -6,6 +6,13 @@ from honeycomb.connection import get_db_connection
 def lake_query(query, engine='presto'):
     """
     General wrapper function around querying with different engines
+
+    Args:
+        query (str): The query to be executed in the lake
+        engine (str):
+            The querying engine to run the query through
+            Use 'presto' for faster, ad-hoc/experimental querie
+            Use 'hive' for slower but more robust queries
     """
     query_fns = {
         'presto': _presto_query,
@@ -17,6 +24,10 @@ def lake_query(query, engine='presto'):
 
 
 def _query_returns_df(query):
+    """
+    Based on the type of query being run, states whether
+    a given query should return a dataframe
+    """
     keywords_that_return = ['SELECT', 'DESCRIBE', 'SHOW']
     if query.split(' ')[0].upper() in keywords_that_return:
         return True
