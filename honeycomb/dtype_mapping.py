@@ -1,11 +1,17 @@
+"""
+The pandas dtype 'timedelta64[ns]' can be mapped to the hive dtype 'INTERVAL',
+but 'INTERVAL' is only available as a return value from querying - it cannot
+be the dtype of a full column in a table. As a result, it is not included here
+
+The pandas dtype 'category' is for categorical variables, but hive does not
+have native support for categorical types. As a result, it is not included here
+"""
 dtype_map = {
     'object': 'STRING',
     'int64': 'INT',
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
-    'datetime64[ns]': 'DATETIME',
-    'timedelta64[ns]': 'INTERVAL'
-    # 'category': None
+    'datetime64[ns]': 'TIMESTAMP',
 }
 
 

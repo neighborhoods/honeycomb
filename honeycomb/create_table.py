@@ -186,13 +186,15 @@ def create_table_from_df(df, table_name, schema='experimental',
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     storage_settings = meta.storage_type_specs[storage_type]['settings']
-    full_path = rv.write(df, path, bucket, **storage_settings)
+    full_path = '/'.join([bucket, path])
 
     create_table_ddl = build_create_table_ddl(schema, table_name,
                                               col_defs, table_comment,
                                               storage_type, full_path)
     print(create_table_ddl)
+
     run.lake_query(create_table_ddl, engine='hive')
+    _ = rv.write(df, path, bucket, **storage_settings)
 
 
 def __nuke_table(table_name, schema):
