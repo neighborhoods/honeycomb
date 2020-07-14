@@ -4,7 +4,8 @@ import subprocess
 import river as rv
 
 from honeycomb import check, meta, run_query as run
-from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
+from honeycomb.dtype_mapping import (
+    apply_spec_dtypes, map_pd_to_db_dtypes, handle_problematic_dtypes)
 
 
 schema_to_zone_bucket_map = {
@@ -183,6 +184,8 @@ def create_table_from_df(df, table_name, schema='experimental',
     col_defs = map_pd_to_db_dtypes(df)
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
+
+    df = handle_problematic_dtypes(df)
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     storage_settings = meta.storage_type_specs[storage_type]['settings']

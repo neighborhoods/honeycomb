@@ -11,7 +11,7 @@ dtype_map = {
     'int64': 'INT',
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
-    'datetime64[ns]': 'TIMESTAMP',
+    'datetime64[ns]': 'STRING',
 }
 
 
@@ -63,3 +63,11 @@ def map_pd_to_db_dtypes(df):
         db_dtypes[db_dtypes == orig_type] = new_type
 
     return db_dtypes
+
+
+def handle_problematic_dtypes(df):
+    # Datetime
+    datetime_cols = df.columns[df.dtypes == 'datetime64[ns]']
+    df[datetime_cols] = df[datetime_cols].apply(
+        lambda x: x.dt.strftime('%y-%m-%d %H:%M:%S'))
+    return df
