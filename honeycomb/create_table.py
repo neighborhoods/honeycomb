@@ -112,7 +112,7 @@ def check_for_comments(table_comment, columns, col_comments):
                          ', '.join(cols_wo_comment))
 
 
-def create_table_from_df(df, table_name, schema='experimental',
+def create_table_from_df(df, table_name, schema=None,
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
                          overwrite=False):

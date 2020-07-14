@@ -4,7 +4,7 @@ from honeycomb import meta, run_query as run
 # Hive and Presto return 'DESCRIBE' queries differently, and
 # Presto does not support the 'FORMATTED' keyword, so
 # we're locking the engine for 'DESCRIBE' queries to Hive for now
-def describe_table(table_name, schema='experimental',
+def describe_table(table_name, schema=None,
                    include_metadata=False):
     """
     Retrieves the description of a specific table in hive
@@ -17,7 +17,8 @@ def describe_table(table_name, schema='experimental',
             on the specified table
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
-
+    print(table_name)
+    print(schema)
     engine = 'hive'
     desc_query = 'DESCRIBE {formatted}{schema}.{table_name}'.format(
         formatted=('FORMATTED ' if include_metadata else ''),

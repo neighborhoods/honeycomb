@@ -3,7 +3,7 @@ import river as rv
 from honeycomb import check, meta
 
 
-def append_table(df, table_name, schema='experimental', filename=None):
+def append_table(df, table_name, schema=None, filename=None):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
