@@ -7,20 +7,22 @@ from honeycomb.create_table import (create_table_from_df,
 
 
 def test_create_table_from_df_csv(mocker, setup_bucket_wo_contents,
-                                  test_schema, test_bucket, test_df):
+                                  test_bucket, test_df):
     """
     Tests that a table has successfully been created in the lake by checking
     for presence of the DataFrame at the expected location in S3
     """
+    schema = 'experimental'
     mocker.patch.dict('honeycomb.create_table.schema_to_zone_bucket_map',
-                      {test_schema: test_bucket}, clear=True)
-    mocker.patch('honeycomb.querying.run_query', return_value=False)
+                      {schema: test_bucket}, clear=True)
+    mocker.patch('honeycomb.run_query.lake_query', return_value=False)
     mocker.patch('honeycomb.check.table_existence', return_value=False)
 
     table_name = 'test_table'
     filename = 'test_file.csv'
     create_table_from_df(test_df, table_name=table_name,
-                         schema=test_schema, filename=filename)
+                         schema=schema, filename=filename,
+                         table_comment='table for testing')
 
     path = table_name + '/' + filename
     df = rv.read(path, test_bucket, header=None)

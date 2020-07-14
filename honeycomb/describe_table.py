@@ -1,4 +1,4 @@
-from honeycomb import querying, meta
+from honeycomb import meta, run_query as run
 
 
 # Hive and Presto return 'DESCRIBE' queries differently, and
@@ -23,5 +23,5 @@ def describe_table(table_name, schema='experimental',
         formatted=('FORMATTED ' if include_metadata else ''),
         schema=schema,
         table_name=table_name)
-    desc = querying.run_query(desc_query, engine)
+    desc = run.lake_query(desc_query, engine)
     return desc

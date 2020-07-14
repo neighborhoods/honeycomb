@@ -3,16 +3,31 @@ import pandas as pd
 from honeycomb.connection import get_db_connection
 
 
-def run_query(query, engine='presto'):
+def lake_query(query, engine='presto'):
     """
     General wrapper function around querying with different engines
+
+    Args:
+        query (str): The query to be executed in the lake
+        engine (str):
+            The querying engine to run the query through
+            Use 'presto' for faster, ad-hoc/experimental querie
+            Use 'hive' for slower but more robust queries
     """
+    query_fns = {
+        'presto': _presto_query,
+        'hive': _hive_query,
+    }
     query_fn = query_fns[engine]
     df = query_fn(query)
     return df
 
 
 def _query_returns_df(query):
+    """
+    Based on the type of query being run, states whether
+    a given query should return a dataframe
+    """
     keywords_that_return = ['SELECT', 'DESCRIBE', 'SHOW']
     if query.split(' ')[0].upper() in keywords_that_return:
         return True
@@ -49,18 +64,3 @@ def _presto_query(query):
     else:
         conn = get_db_connection('presto', cursor=True)
         conn.execute(query)
-
-
-def _gbq_query(query, project_id):
-    """
-    BigQuery-specific query function
-    """
-    df = pd.read_gbq(query, project_id=project_id)
-    return df
-
-
-query_fns = {
-    'presto': _presto_query,
-    'hive': _hive_query,
-    'gbq': _gbq_query
-}

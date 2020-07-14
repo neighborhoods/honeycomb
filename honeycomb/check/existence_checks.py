@@ -1,12 +1,12 @@
-from honeycomb.querying import run_query
+from honeycomb import run_query as run
 
 
-def check_schema_existence(schema, engine='presto'):
+def check_schema_existence(schema):
     show_schemas_query = (
         'SHOW SCHEMAS LIKE \'{schema}\''.format(schema=schema)
     )
 
-    similar_schemas = run_query(show_schemas_query, engine='hive')
+    similar_schemas = run.lake_query(show_schemas_query)
     if similar_schemas is not None:
         # NOTE: 'database' and 'schema' are interchangeable terms in Hive
         if schema in similar_schemas['database_name']:
@@ -14,7 +14,7 @@ def check_schema_existence(schema, engine='presto'):
     return False
 
 
-def check_table_existence(table_name, schema, engine='presto'):
+def check_table_existence(table_name, schema):
     """
     Checks if a specific table exists in a specific schema
 
@@ -31,7 +31,7 @@ def check_table_existence(table_name, schema, engine='presto'):
             table_name=table_name)
     )
 
-    similar_tables = run_query(show_tables_query, engine='hive')
-    if table_name in similar_tables['tab_name']:
+    similar_tables = run.lake_query(show_tables_query, engine='hive')
+    if table_name in similar_tables['tab_name'].values:
         return True
     return False
