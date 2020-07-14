@@ -21,6 +21,15 @@ storage_type_specs = {
 }
 
 
+def prep_schema_and_table(table, schema):
+    if schema is None:
+        if '.' in table:
+            schema, table = table.split('.')
+        else:
+            schema = 'experimental'
+    return table, schema
+
+
 def gen_filename_if_allowed(schema_name, storage_type=None):
     """
     Pass-through to name generation fn, if writing to the experimental zone
