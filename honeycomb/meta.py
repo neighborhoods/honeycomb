@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from honeycomb.querying import run_query
+from honeycomb import run_query as run
 
 storage_type_specs = {
     'csv': {
@@ -62,7 +62,7 @@ def get_table_metadata(table_name, schema_name):
         schema_name=schema_name,
         table_name=table_name
     )
-    table_metadata = run_query(create_stmt_query, 'hive')
+    table_metadata = run.lake_query(create_stmt_query, 'hive')
 
     bucket, path = get_table_s3_location_from_metadata(table_metadata)
     storage_type = get_table_storage_type_from_metadata(table_metadata)
