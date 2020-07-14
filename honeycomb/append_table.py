@@ -40,5 +40,12 @@ def append_table(df, table_name, schema='experimental', filename=None):
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')
 
+    column_order = meta.get_table_column_order(table_name, schema)
+    if sorted(column_order) != sorted(df.columns):
+        #  New df is missing columns compared to the table
+        if all(df.columns.isin(column_order)):
+            column_order = [col for col in column_order if col in df.columns]
+
+
     storage_settings = meta.storage_type_specs[storage_type]['settings']
-    rv.write(df, path, bucket, **storage_settings)
+    rv.write(df[column_order], path, bucket, **storage_settings)

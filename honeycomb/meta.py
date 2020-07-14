@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from honeycomb import run_query as run
+from honeycomb.describe_table import describe_table
 
 storage_type_specs = {
     'csv': {
@@ -58,6 +59,11 @@ def generate_s3_filename(storage_type=None):
         storage_type = 'pq'
 
     return '.'.join([filename, storage_type])
+
+
+def get_table_column_order(table_name, schema):
+    description = describe_table(table_name, schema)
+    return description['col_name']
 
 
 def get_table_metadata(table_name, schema_name):
