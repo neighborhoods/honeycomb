@@ -17,7 +17,8 @@ storage_type_specs = {
     'pq': {
         'settings': {
             'engine': 'pyarrow',
-            'compression': 'snappy'
+            'compression': 'snappy',
+            'use_deprecated_int96_timestamps': True
         },
         'ddl': 'STORED AS PARQUET'
     }

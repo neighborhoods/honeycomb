@@ -1,7 +1,6 @@
 import river as rv
 
 from honeycomb import check, meta
-from honeycomb.dtype_mapping import handle_problematic_dtypes
 
 
 def append_table(df, table_name, schema='experimental', filename=None):
@@ -41,6 +40,5 @@ def append_table(df, table_name, schema='experimental', filename=None):
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')
 
-    df = handle_problematic_dtypes(df)
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     rv.write(df, path, bucket, **storage_settings)
