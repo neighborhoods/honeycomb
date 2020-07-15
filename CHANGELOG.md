@@ -23,6 +23,7 @@ present in S3, the function will fail.
 ### Changed
 - Full table and column comments are required for creating a table outside of
 the experimental zone.
+- `append_table` now reorders columns when needed and can handle missing/extra columns.
 
 
 ## [0.1.0] - 2020-05-11
