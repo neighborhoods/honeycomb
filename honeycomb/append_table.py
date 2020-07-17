@@ -3,7 +3,7 @@ import river as rv
 from honeycomb import check, meta
 
 
-def append_table(df, table_name, schema='experimental', filename=None):
+def append_table(df, table_name, schema=None, filename=None):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -16,7 +16,9 @@ def append_table(df, table_name, schema='experimental', filename=None):
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
     """
-    table_exists = check.table_existence(schema, table_name)
+    table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
+    table_exists = check.table_existence(table_name, schema)
     if not table_exists:
         raise ValueError(
             'Table \'{schema}.{table_name}\' does not exist. '.format(

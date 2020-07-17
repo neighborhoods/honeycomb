@@ -18,11 +18,21 @@ storage_type_specs = {
     'pq': {
         'settings': {
             'engine': 'pyarrow',
-            'compression': 'snappy'
+            'compression': 'snappy',
+            'use_deprecated_int96_timestamps': True
         },
         'ddl': 'STORED AS PARQUET'
     }
 }
+
+
+def prep_schema_and_table(table, schema):
+    if schema is None:
+        if '.' in table:
+            schema, table = table.split('.')
+        else:
+            schema = 'experimental'
+    return table, schema
 
 
 def gen_filename_if_allowed(schema_name, storage_type=None):
