@@ -15,7 +15,11 @@ storage_type_specs = {
                """
     },
     'pq': {
-        'settings': {},
+        'settings': {
+            'engine': 'pyarrow',
+            'compression': 'snappy',
+            'use_deprecated_int96_timestamps': True
+        },
         'ddl': 'STORED AS PARQUET'
     }
 }
