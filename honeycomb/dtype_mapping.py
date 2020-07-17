@@ -1,11 +1,9 @@
 dtype_map = {
     'object': 'STRING',
-    'int64': 'INT',
+    'int64': 'BIGINT',
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
-    'datetime64[ns]': 'DATETIME',
-    'timedelta64[ns]': 'INTERVAL'
-    # 'category': None
+    'datetime64[ns]': 'TIMESTAMP',
 }
 
 
