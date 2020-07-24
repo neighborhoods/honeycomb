@@ -8,7 +8,7 @@ have native support for categorical types. As a result, it is not included here
 """
 dtype_map = {
     'object': 'STRING',
-    'int64': 'INT',
+    'int64': 'BIGINT',
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
     'datetime64[ns]': 'TIMESTAMP',

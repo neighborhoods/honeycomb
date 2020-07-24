@@ -16,7 +16,7 @@ pytest-mock = "==2.0.0"
 [packages]
 pandas = "==1.0.1"
 pyhive = {extras = ["hive", "presto"], version = "==0.6.1"}
-river = {version="==0.1.1", index="nhds"}
+river = {version="==1.0", index="nhds"}
 
 [requires]
 python_version = "3.7"

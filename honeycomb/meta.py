@@ -3,6 +3,10 @@ from datetime import datetime
 from honeycomb import run_query as run
 
 storage_type_specs = {
+    'avro': {
+        'settings': {},
+        'ddl': 'STORED AS AVRO'
+    },
     'csv': {
         'settings': {
             'index': False,
