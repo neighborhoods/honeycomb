@@ -20,6 +20,7 @@ old table and remove its underlying files.
 - `append_table` now has overwrite protection. If a conflicting key is already
 present in S3, the function will fail.
 - Can create tables in Avro format
+- Can add partitions to tables
 
 ### Changed
 - Full table and column comments are required for creating a table outside of
