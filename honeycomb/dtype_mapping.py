@@ -56,6 +56,9 @@ def map_pd_to_db_dtypes(df):
     if any(df.dtypes == 'category'):
         raise TypeError('Pandas\' \'categorical\' type is not supported. '
                         'Contact honeycomb devs for further info.')
+    if any(df.dtypes == 'timedelta64[ns]'):
+        raise TypeError('Pandas\' \'timedelta64[ns]\' type is not supported. '
+                        'Contact honeycomb devs for further info.')
     db_dtypes = df.dtypes.copy()
 
     for orig_type, new_type in dtype_map.items():

@@ -10,28 +10,34 @@ def test_map_pd_to_db_dtypes(test_df_all_types):
     mapped_dtypes = map_pd_to_db_dtypes(test_df_all_types)
 
     expected_dtypes = pd.Series({
-        'intcol': 'INT',
+        'intcol': 'BIGINT',
         'strcol': 'STRING',
         'floatcol': 'DOUBLE',
         'boolcol': 'BOOLEAN',
-        'datetimecol': 'DATETIME',
-        'timedeltacol': 'INTERVAL'
+        'datetimecol': 'TIMESTAMP',
     })
 
     assert mapped_dtypes.equals(expected_dtypes)
 
 
-def test_map_pd_to_db_dtypes_categorical_fails():
+def test_map_pd_to_db_dtypes_unsupported_fails():
     """
     Tests that dtype mapping fails if a dataframe contains the unsupported
     categorical type
     """
-    df = pd.DataFrame({
+    cat_df = pd.DataFrame({
         'catcol': pd.Series(pd.Categorical([1, 2, 3, 4], categories=[1, 2, 3]))
     })
 
     with pytest.raises(TypeError, match='categorical.* not supported'):
-        map_pd_to_db_dtypes(df)
+        map_pd_to_db_dtypes(cat_df)
+
+    td_df = pd.DataFrame({
+        'timedeltacol': [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
+    })
+
+    with pytest.raises(TypeError, match=r'timedelta64\[ns\].* not supported'):
+        map_pd_to_db_dtypes(td_df)
 
 
 def test_apply_spec_dtypes(test_df_all_types):

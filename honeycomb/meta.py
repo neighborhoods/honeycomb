@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from honeycomb import run_query as run
+from honeycomb.describe_table import describe_table
 
 storage_type_specs = {
     'avro': {
@@ -74,7 +75,26 @@ def generate_s3_filename(storage_type=None):
     return '.'.join([filename, storage_type])
 
 
+def get_table_column_order(table_name, schema):
+    """
+    Gets the order of columns in a data lake table
+
+    Args:
+        table_name (str): The table to get the column order of
+        schema (str): The schema the table is in
+    """
+    description = describe_table(table_name, schema)
+    return description['col_name'].to_list()
+
+
 def get_table_metadata(table_name, schema_name):
+    """
+    Gets the metadata a data lake table
+
+    Args:
+        table_name (str): The table to get the metadata of
+        schema (str): The schema the table is in
+    """
     create_stmt_query = "SHOW CREATE TABLE {schema_name}.{table_name}".format(
         schema_name=schema_name,
         table_name=table_name
@@ -93,6 +113,14 @@ def get_table_metadata(table_name, schema_name):
 
 
 def get_table_s3_location_from_metadata(table_metadata):
+    """
+    Extracts the underlying S3 location a table uses from its metadata
+
+    Args:
+        table_metadata (pd.DataFrame):
+            The metadata of a table in the lake as returned from
+            'get_table_metadata'
+    """
     loc_label_idx = table_metadata.index[
         table_metadata['createtab_stmt'].str.strip() == "LOCATION"].values[0]
     location = table_metadata.loc[
