@@ -4,7 +4,7 @@ from honeycomb import check, meta
 
 
 def append_table(df, table_name, schema=None, filename=None,
-                 allow_mismatched_cols=False):
+                 require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -16,7 +16,7 @@ def append_table(df, table_name, schema=None, filename=None,
         filename (str, optional):
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
-        allow_mismatched_cols (bool, default False):
+        require_identical_columns (bool, default True):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
@@ -47,14 +47,14 @@ def append_table(df, table_name, schema=None, filename=None,
                        'Specify a different filename to proceed.')
 
     df = reorder_columns_for_appending(df, table_name, schema,
-                                       allow_mismatched_cols)
+                                       require_identical_columns)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     rv.write(df, path, bucket, **storage_settings)
 
 
 def reorder_columns_for_appending(df, table_name, schema,
-                                  allow_mismatched_cols):
+                                  require_identical_columns):
     """
     Serialized formats such as Parquet don't necessarily have to worry
     about column order, but text-based formats like CSV rely entirely
@@ -74,14 +74,14 @@ def reorder_columns_for_appending(df, table_name, schema,
         df (pd.DataFrame): The dataframe to reorder
         table_name (str): The name of the table to be created
         schema (str): Name of the schema to create the table in
-        allow_mismatched_cols (bool):
+        require_identical_columns (bool):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
     table_col_order = meta.get_table_column_order(table_name, schema)
     if sorted(table_col_order) == sorted(df.columns):
         df = df[table_col_order]
-    elif allow_mismatched_cols:
+    elif not require_identical_columns:
         cols_missing_from_df = [col for col in table_col_order
                                 if col not in df.columns]
         df = df.assign(**{col: None for col in cols_missing_from_df})
@@ -94,5 +94,5 @@ def reorder_columns_for_appending(df, table_name, schema,
     else:
         raise ValueError('The provided dataframe\'s columns do not match '
                          'the columns of the table. To ignore this and '
-                         'proceed anyway, set "allow_mismatched_cols" '
-                         'to True.')
+                         'proceed anyway, set "require_identical_columns" '
+                         'to False.')

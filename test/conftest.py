@@ -65,7 +65,6 @@ def test_df_all_types():
         'boolcol': [True, False],
         'datetimecol': [
             np.datetime64('2020-01-01'), np.datetime64('2020-01-02')],
-        'timedeltacol': [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
     })
 
 
