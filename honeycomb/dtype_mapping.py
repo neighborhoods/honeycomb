@@ -15,6 +15,18 @@ dtype_map = {
 }
 
 
+def handle_timezones(df, datetime_cols, schema):
+    for col in datetime_cols:
+        if df[col].dt.tz:
+            timezone = df[col].dt.tz.name
+            df[col] = df[col].dt.tz_localize(timezone)
+            df[col] = df[col].dt.tz_convert(None)
+        elif schema != 'experimental':
+            raise TypeError('All datetime columns in non-experimental tables '
+                            'must be timezone-aware.')
+    return df
+
+
 def apply_spec_dtypes(df, spec_dtypes):
     """
     Maps specified columns in a DataFrame to another dtype
