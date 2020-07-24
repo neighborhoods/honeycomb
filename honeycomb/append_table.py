@@ -93,4 +93,6 @@ def reorder_columns_for_appending(df, table_name, schema,
         return df[new_df_col_order]
     else:
         raise ValueError('The provided dataframe\'s columns do not match '
-                         'the columns of the table.')
+                         'the columns of the table. To ignore this and '
+                         'proceed anyway, set "allow_mismatched_cols" '
+                         'to True.')

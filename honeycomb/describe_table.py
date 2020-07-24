@@ -17,8 +17,7 @@ def describe_table(table_name, schema=None,
             on the specified table
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
-    print(table_name)
-    print(schema)
+
     engine = 'hive'
     desc_query = 'DESCRIBE {formatted}{schema}.{table_name}'.format(
         formatted=('FORMATTED ' if include_metadata else ''),
