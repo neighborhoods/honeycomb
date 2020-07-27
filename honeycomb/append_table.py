@@ -1,9 +1,10 @@
 import river as rv
 
-from honeycomb import check, meta
+from honeycomb import check, meta, dtype_mapping
 
 
 def append_table(df, table_name, schema=None, filename=None,
+                 timezones=None, copy_df=True,
                  require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
@@ -16,6 +17,18 @@ def append_table(df, table_name, schema=None, filename=None,
         filename (str, optional):
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
+        timezones (dict<str, str>):
+            Dictionary from datetime columns to the timezone they
+            represent. If the column is timezone-naive, it will have the
+            timezone added to its metadata, leaving the times themselves
+            unmodified. If the column is timezone-aware, the timezone
+            will be converted, likely modifying the stored times.
+        copy_df (bool):
+            Whether the operations performed on df should be performed on the
+            original or a copy. Keep in mind that if this is set to False,
+            the original df passed in will be modified as well - twice as
+            memory efficient, but may be undesirable if the df is needed
+            again later
         require_identical_columns (bool, default True):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
@@ -46,6 +59,8 @@ def append_table(df, table_name, schema=None, filename=None,
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')
 
+    df = dtype_mapping.special_dtype_handling(
+        df, dtypes=None, timezones=timezones, schema=schema, copy_df=copy_df)
     df = reorder_columns_for_appending(df, table_name, schema,
                                        require_identical_columns)
 

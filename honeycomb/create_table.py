@@ -4,7 +4,7 @@ import subprocess
 import river as rv
 
 from honeycomb import check, meta, run_query as run
-from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
+from honeycomb import dtype_mapping
 
 
 schema_to_zone_bucket_map = {
@@ -115,7 +115,7 @@ def check_for_comments(table_comment, columns, col_comments):
 def create_table_from_df(df, table_name, schema=None,
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
-                         overwrite=False):
+                         overwrite=False, timezones=None, copy_df=True):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -134,6 +134,18 @@ def create_table_from_df(df, table_name, schema=None,
         table_comment (str, optional): Documentation on the table's purpose
         col_comments (dict<str:str>, optional):
             Dictionary from column name keys to column descriptions.
+        timezones (dict<str, str>):
+            Dictionary from datetime columns to the timezone they
+            represent. If the column is timezone-naive, it will have the
+            timezone added to its metadata, leaving the times themselves
+            unmodified. If the column is timezone-aware, the timezone
+            will be converted, likely modifying the stored times.
+        copy_df (bool):
+            Whether the operations performed on df should be performed on the
+            original or a copy. Keep in mind that if this is set to False,
+            the original df passed in will be modified as well - twice as
+            memory efficient, but may be undesirable if the df is needed
+            again later
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
@@ -180,9 +192,9 @@ def create_table_from_df(df, table_name, schema=None,
                        'Which will be overwritten by this operation. '
                        'Specify a different filename.')
 
-    if dtypes is not None:
-        df = apply_spec_dtypes(df, dtypes)
-    col_defs = map_pd_to_db_dtypes(df)
+    df = dtype_mapping.special_dtype_handling(
+        df, dtypes, timezones, schema, copy_df)
+    col_defs = dtype_mapping.map_pd_to_db_dtypes(df)
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
 
