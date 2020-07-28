@@ -30,21 +30,23 @@ def add_comments_to_col_defs(col_defs, comments):
 
 
 def build_create_table_ddl(schema, table_name, col_defs,
-                           table_comment, storage_type, full_path):
+                           table_comment, storage_type, partitions, full_path):
     create_table_ddl = """
-    CREATE EXTERNAL TABLE {schema}.{table_name} (
+CREATE EXTERNAL TABLE {schema}.{table_name} (
     {columns_and_types}
-    )
-    {table_comment}
-    {storage_format_ddl}
-    LOCATION 's3://{full_path}'
+){table_comment}{partitions}
+{storage_format_ddl}
+LOCATION 's3://{full_path}'
     """.format(
         schema=schema,
         table_name=table_name,
         columns_and_types=col_defs.to_string(
             header=False).replace('\n', ',\n'),
-        table_comment=('COMMENT \'{table_comment}\''.format(
+        table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
+        partitions=', '.join(
+            ['{} {}'.format(partition_name, partition_type)
+             for partition_name, partition_type in partitions.items()]),
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
         full_path=full_path.rsplit('/', 1)[0] + '/'
     )
@@ -115,7 +117,7 @@ def check_for_comments(table_comment, columns, col_comments):
 def create_table_from_df(df, table_name, schema=None,
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
-                         overwrite=False):
+                         partitions=None, overwrite=False):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -134,6 +136,10 @@ def create_table_from_df(df, table_name, schema=None,
         table_comment (str, optional): Documentation on the table's purpose
         col_comments (dict<str:str>, optional):
             Dictionary from column name keys to column descriptions.
+        partitions (dict<str:str>, optional):
+            Dictionary from partition name to partition type to be defined
+            with the table
+        overwrite (bool, default False):
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
@@ -165,12 +171,13 @@ def create_table_from_df(df, table_name, schema=None,
             __nuke_table(table_name, schema)
 
     if rv.list_objects(path, bucket):
-        raise KeyError(('Files are already present in s3://{}/{}. '
-                        'Creation of a new table requires a dedicated, '
-                        'empty folder.'
+        raise KeyError(('Files are already present in s3://{}/{}, indicating '
+                        'an extant table. Creation of a new table requires a '
+                        'dedicated, empty folder. '
                         'If this is desired, set "overwrite" to True. '
-                        'Otherwise, specify a different filename.').format(
-                            bucket, path)
+                        'This will completely delete any files in the '
+                        'specified path. Otherwise, specify a different '
+                        'filename.').format(bucket, path)
                        )
 
     path += filename
@@ -192,7 +199,8 @@ def create_table_from_df(df, table_name, schema=None,
 
     create_table_ddl = build_create_table_ddl(schema, table_name,
                                               col_defs, table_comment,
-                                              storage_type, full_path)
+                                              partitions, storage_type,
+                                              full_path)
     print(create_table_ddl)
 
     run.lake_query(create_table_ddl, engine='hive')

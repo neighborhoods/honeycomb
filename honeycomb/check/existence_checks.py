@@ -35,3 +35,8 @@ def check_table_existence(table_name, schema):
     if table_name in similar_tables['tab_name'].values:
         return True
     return False
+
+
+def check_partition_existence(table_name, schema,
+                              partition_name, partition_value):
+    pass

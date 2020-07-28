@@ -1,10 +1,11 @@
 import river as rv
 
 from honeycomb import check, meta
+from honeycomb.alter_table import add_partitions
 
 
 def append_table(df, table_name, schema=None, filename=None,
-                 require_identical_columns=True):
+                 partitions=None, require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -16,6 +17,9 @@ def append_table(df, table_name, schema=None, filename=None,
         filename (str, optional):
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
+        partitions (dict<str:str>, optional):
+            Dictionary from partition name to partition value. If there is
+            no partiton at the value, it will be created.
         require_identical_columns (bool, default True):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
@@ -39,6 +43,10 @@ def append_table(df, table_name, schema=None, filename=None,
         filename = meta.gen_filename_if_allowed(schema, storage_type)
     if not path.endswith('/'):
         path += '/'
+
+    if partitions:
+        path = add_partitions(table_name, schema, partitions, path)
+
     path += filename
 
     if rv.exists(path, bucket):
