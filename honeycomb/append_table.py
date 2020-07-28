@@ -60,7 +60,8 @@ def append_table(df, table_name, schema=None, filename=None,
                        'Specify a different filename to proceed.')
 
     df = dtype_mapping.special_dtype_handling(
-        df, dtypes=None, timezones=timezones, schema=schema, copy_df=copy_df)
+        df, spec_dtypes=None, spec_timezones=timezones,
+        schema=schema, copy_df=copy_df)
     df = reorder_columns_for_appending(df, table_name, schema,
                                        require_identical_columns)
 
@@ -96,6 +97,7 @@ def reorder_columns_for_appending(df, table_name, schema,
     table_col_order = meta.get_table_column_order(table_name, schema)
     if sorted(table_col_order) == sorted(df.columns):
         df = df[table_col_order]
+        return df
     elif not require_identical_columns:
         cols_missing_from_df = [col for col in table_col_order
                                 if col not in df.columns]
