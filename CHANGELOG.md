@@ -20,6 +20,9 @@ old table and remove its underlying files.
 - `append_table` now has overwrite protection. If a conflicting key is already
 present in S3, the function will fail.
 - Can create tables in Avro format
+- Automatic timezone conversion for table creation/appending. Outside of the
+experimental zone, all datetime columns will be expected to be timezone-aware,
+or have a timezone value provided for `honeycomb` to use to make them timezone-aware.
 
 ### Changed
 - Full table and column comments are required for creating a table outside of
