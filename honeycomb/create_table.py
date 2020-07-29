@@ -41,10 +41,10 @@ LOCATION 's3://{full_path}'
         schema=schema,
         table_name=table_name,
         columns_and_types=col_defs.to_string(
-            header=False).replace('\n', ',\n'),
+            header=False).replace('\n', ',\n    '),
         table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
-        partitions=', '.join(
+        partitions='\n' + ', '.join(
             ['{} {}'.format(partition_name, partition_type)
              for partition_name, partition_type in partitions.items()]),
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
