@@ -23,8 +23,9 @@ def append_table(df, table_name, schema=None, dtypes=None,
             Dictionary from datetime columns to the timezone they
             represent. If the column is timezone-naive, it will have the
             timezone added to its metadata, leaving the times themselves
-            unmodified. If the column is timezone-aware, the timezone
-            will be converted, likely modifying the stored times.
+            unmodified. If the column is timezone-aware and is in a different
+            timezone than the one that is specified, the column's timezone
+            will be converted, modifying the original times.
         copy_df (bool):
             Whether the operations performed on df should be performed on the
             original or a copy. Keep in mind that if this is set to False,
