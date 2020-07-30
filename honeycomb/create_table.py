@@ -41,8 +41,10 @@ def build_create_table_ddl(schema, table_name, col_defs,
     """.format(
         schema=schema,
         table_name=table_name,
-        columns_and_types=col_defs.to_string(
-            header=False).replace('\n', ',\n'),
+        # BUG: pd.Series truncates long strings output by to_string,
+        # have to cast to DataFrame first.
+        columns_and_types=col_defs.to_frame().to_string(
+            header=False, max_colwidth=999999999).replace('\n', ',\n'),
         table_comment=('COMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
@@ -185,7 +187,6 @@ def create_table_from_df(df, table_name, schema=None,
     col_defs = map_pd_to_db_dtypes(df)
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
-
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
