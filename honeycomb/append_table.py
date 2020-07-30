@@ -4,8 +4,8 @@ from honeycomb import check, meta
 from honeycomb.alter_table import add_partitions
 
 
-def append_table(df, table_name, schema=None, filename=None,
-                 partition_values=None, require_identical_columns=True):
+def append_df_to_table(df, table_name, schema=None, filename=None,
+                       partition_values=None, require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
