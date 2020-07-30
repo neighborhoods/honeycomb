@@ -2,7 +2,7 @@ import pytest
 
 import river as rv
 
-from honeycomb.append_table import append_table
+from honeycomb import append_table
 
 
 def test_append_table(mocker, setup_bucket_w_contents,
@@ -12,6 +12,8 @@ def test_append_table(mocker, setup_bucket_w_contents,
     as shown by the DataFrame being present at the expected location in S3
     """
     mocker.patch('honeycomb.check.table_existence', return_value=True)
+    mocker.patch('honeycomb.append_table.reorder_columns_for_appending',
+                 return_value=test_df.columns)
 
     storage_type = 'csv'
     filename = test_df_key.split('.')[0]

@@ -1,21 +1,18 @@
 from honeycomb import run_query as run
 
 
-def add_partitions(table_name, schema, partitions, path):
-    partition_strings = ['{}={}'.format(partition_name, partition_value) for
-                         partition_name, partition_value in partitions.items()]
+def add_partitions(table_name, schema, partitions):
+    partition_strings = ['{}=\'{}\''.format(partition_name, partition_value)
+                         for partition_name, partition_value in partitions]
 
-    path += (
-        '/'.join([partition_val for partition_val in partitions.values()]) +
-        '/'
-    )
+    partition_path = (
+        '/'.join([partition[1] for partition in partitions]) + '/')
 
-    run.lake_query(
+    add_partition_query = (
         'ALTER TABLE {}.{} ADD PARTITION ({}) LOCATION \'{}\''.format(
-            table_name,
-            schema,
-            ', '.join(partition_strings),
-            path
-        ))
+            schema, table_name, ', '.join(partition_strings), partition_path))
+    print(add_partition_query)
 
-    return path
+    run.lake_query(add_partition_query, engine='hive')
+
+    return partition_path
