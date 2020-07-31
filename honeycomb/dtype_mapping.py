@@ -96,5 +96,9 @@ def handle_complex_dtypes(df_complex_cols, db_dtypes):
             dtype_str += '>'
             db_dtypes[col] = dtype_str
         else:
-            raise TypeError()
+            raise TypeError('Values passed to complex column "{}" are either '
+                            'of unsupported types of mixed types. Currently '
+                            'supported complex types are "STRING" and '
+                            '"STRUCT" (dictionary). Columns must contain '
+                            'homogenous types.')
     return db_dtypes
