@@ -44,7 +44,7 @@ def build_create_table_ddl(schema, table_name, col_defs,
         # BUG: pd.Series truncates long strings output by to_string,
         # have to cast to DataFrame first.
         columns_and_types=col_defs.to_frame().to_string(
-            header=False, max_colwidth=999999999).replace('\n', ',\n'),
+            header=False).replace('\n', ',\n'),
         table_comment=('COMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],

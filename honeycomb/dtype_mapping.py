@@ -96,8 +96,5 @@ def handle_complex_dtypes(df_complex_cols, db_dtypes):
             dtype_str += '>'
             db_dtypes[col] = dtype_str
         else:
-            pass
-    print(db_dtypes)
-    x = pd.Series(db_dtypes)
-    print(x.values)
-    return x
+            raise TypeError()
+    return db_dtypes
