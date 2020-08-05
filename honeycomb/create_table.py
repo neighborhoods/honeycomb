@@ -1,10 +1,12 @@
+from collections import OrderedDict
 import os
 import subprocess
+import sys
 
 import river as rv
 
 from honeycomb import check, meta, run_query as run
-from honeycomb.alter_table import add_partitions
+from honeycomb.alter_table import add_partition
 from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 
 
@@ -31,11 +33,12 @@ def add_comments_to_col_defs(col_defs, comments):
 
 
 def build_create_table_ddl(schema, table_name, col_defs,
-                           table_comment, storage_type, partitions, full_path):
+                           table_comment, storage_type,
+                           partitioned_by, full_path):
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
     {columns_and_types}
-){table_comment}{partitions}
+){table_comment}{partitioned_by}
 {storage_format_ddl}
 LOCATION 's3://{full_path}'
     """.format(
@@ -45,10 +48,10 @@ LOCATION 's3://{full_path}'
             header=False).replace('\n', ',\n    '),
         table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
-        partitions=('\nPARTITIONED BY ({})'.format(', '.join(
+        partitioned_by=('\nPARTITIONED BY ({})'.format(', '.join(
             ['{} {}'.format(partition_name, partition_type)
-             for partition_name, partition_type in partitions])
-            if partitions else '')),
+             for partition_name, partition_type in partitioned_by.items()])
+            if partitioned_by else '')),
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
         full_path=full_path.rsplit('/', 1)[0] + '/'
     )
@@ -81,15 +84,16 @@ def check_for_comments(table_comment, columns, col_comments):
         raise TypeError('"table_comment" must be a string.')
 
     if not len(table_comment) > 1:
-        raise ValueError('A table comment is required when creating a table '
-                         'outside of the experimental zone.')
+        raise ValueError(
+            'A table comment is required when creating a table outside of '
+            'the experimental zone.')
 
     cols_missing_from_comments = columns[columns.isin(col_comments.keys())]
     if not all(columns.isin(col_comments.keys())):
-        raise ValueError('All columns must be present in the "col_comments" '
-                         'dictionary with a proper comment when writing '
-                         'outside the experimental zone. Columns missing: ' +
-                         ', '.join(cols_missing_from_comments))
+        raise ValueError(
+            'All columns must be present in the "col_comments" dictionary '
+            'with a proper comment when writing outside the experimental '
+            'zone. Columns missing: ' + ', '.join(cols_missing_from_comments))
 
     extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
     if extra_comments_in_dict:
@@ -106,21 +110,38 @@ def check_for_comments(table_comment, columns, col_comments):
             cols_wo_comment.append(str(col))
 
     if cols_w_nonstring_comments:
-        raise TypeError('Column comments must be strings. Columns with '
-                        'incorrect comment types: ' +
-                        ', '.join(cols_w_nonstring_comments))
+        raise TypeError(
+            'Column comments must be strings. Columns with incorrect comment '
+            'types: ' + ', '.join(cols_w_nonstring_comments))
     if cols_wo_comment:
-        raise ValueError('A column comment is required for each column when '
-                         'creating a table outside of the experimental zone. '
-                         'Columns that require comments: ' +
-                         ', '.join(cols_wo_comment))
+        raise ValueError(
+            'A column comment is required for each column when creating a '
+            'table outside of the experimental zone. Columns that require '
+            'comments: ' + ', '.join(cols_wo_comment))
+
+
+def confirm_ordered_dicts():
+    """
+    Checks if the Python version is at least 3.6, determining whether
+    dictionaries are ordered.
+    """
+    python_version = sys.version_info
+    if python_version.major >= 3:
+        if python_version.minor >= 6:
+            if python_version.minor == 6:
+                print(
+                    'You are using Python 3.6. Dictionaries are ordered in '
+                    '3.6, but only as a side effect. It is recommended to '
+                    'upgrade to 3.7 to have guaranteeably ordered dicts.')
+            return True
+    return False
 
 
 def create_table_from_df(df, table_name, schema=None,
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
-                         partitions=None, first_partition_values=None,
-                         overwrite=False):
+                         partitioned_by=None, partition_values=None,
+                         overwrite=False, auto_upload_df=True):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -139,27 +160,45 @@ def create_table_from_df(df, table_name, schema=None,
         table_comment (str, optional): Documentation on the table's purpose
         col_comments (dict<str:str>, optional):
             Dictionary from column name keys to column descriptions.
-        partitions (list<tuple<str:str>>, optional):
-            List of tuples containing a partition name and type
-        first_partition_values (dict<str:str>):
-            Required if 'partitions' is used. List of tuples containing
-            partition name and value to store the dataframe under
+        partitioned_by (dict<str:str>,
+                    collections.OrderedDict<str:str>, or
+                    list<tuple<str:str>>, optional):
+            List of tuples containing a partition name and type. Cannot be a
+            vanilla dictionary if using Python version < 3.6
+        partition_values (dict<str:str>):
+            Required if 'partitioned_by' is used and 'auto_upload_df' is True.
+            List of tuples containing partition name and value to store
+            the dataframe under
         overwrite (bool, default False):
+            Whether to overwrite the current table if one is already present
+            at the specified name
+        auto_upload_df (bool, optional):
+            Whether the df that the table's structure will be based off of
+            should be automatically uploaded to the table
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
-    if partitions and not first_partition_values:
-        raise ValueError(
-            'If using "partitions", values must be passed to '
-            '"first_partition_values" as well.')
+    if partitioned_by:
+        if isinstance(partitioned_by, dict) and not confirm_ordered_dicts():
+            raise TypeError(
+                'The order of "partitioned_by" must be preserved, and '
+                'dictionaries are not guaranteed to be order-preserving '
+                'in Python versions < 3.7. Use a list of tuples or an '
+                'OrderedDict, or upgrade your Python version.')
+        elif isinstance(partitioned_by, list):
+            partitioned_by = OrderedDict(partitioned_by)
+        if auto_upload_df and not partition_values:
+            raise ValueError(
+                'If using "partitioned_by" and "auto_upload_df" is True, '
+                'values must be passed to "partition_values" as well.')
 
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
         if overwrite:
-            raise ValueError('Overwrite functionality is only available in '
-                             'the experimental zone. Contact a lake '
-                             'administrator if modification of a non-'
-                             'experimental table is needed.')
+            raise ValueError(
+                'Overwrite functionality is only available in the '
+                'experimental zone. Contact a lake administrator if '
+                'modification of a non-experimental table is needed.')
 
     if path is None:
         path = table_name
@@ -181,18 +220,17 @@ def create_table_from_df(df, table_name, schema=None,
             __nuke_table(table_name, schema)
 
     if rv.list_objects(path, bucket):
-        raise KeyError(('Files are already present in s3://{}/{}, indicating '
-                        'an extant table. Creation of a new table requires a '
-                        'dedicated, empty folder. '
-                        'If this is desired, set "overwrite" to True. '
-                        'This will completely delete any files in the '
-                        'specified path. Otherwise, specify a different '
-                        'filename.').format(bucket, path))
+        raise KeyError((
+            'Files are already present in s3://{}/{}, indicating an existing '
+            'table. Creation of a new table requires a dedicated, empty '
+            'folder. If this is desired, set "overwrite" to True. '
+            'This will completely delete any files in the specified path. '
+            'Otherwise, specify a different filename.').format(bucket, path))
 
     if not overwrite and rv.exists(path, bucket):
-        raise KeyError('A file already exists at s3://' + bucket + path + ', '
-                       'Which will be overwritten by this operation. '
-                       'Specify a different filename.')
+        raise KeyError(
+            'A file already exists at s3://' + bucket + path + ', Which will '
+            'be overwritten by this operation. Specify a different filename.')
 
     if dtypes is not None:
         df = apply_spec_dtypes(df, dtypes)
@@ -206,16 +244,17 @@ def create_table_from_df(df, table_name, schema=None,
 
     create_table_ddl = build_create_table_ddl(schema, table_name,
                                               col_defs, table_comment,
-                                              storage_type, partitions,
+                                              storage_type, partitioned_by,
                                               full_path)
     print(create_table_ddl)
     run.lake_query(create_table_ddl, engine='hive')
 
-    if partitions:
-        path += add_partitions(table_name, schema, first_partition_values)
+    if partitioned_by:
+        path += add_partition(table_name, schema, partition_values)
     path += filename
 
-    _ = rv.write(df, path, bucket, **storage_settings)
+    if auto_upload_df:
+        _ = rv.write(df, path, bucket, **storage_settings)
 
 
 def __nuke_table(table_name, schema):

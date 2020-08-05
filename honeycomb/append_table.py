@@ -1,7 +1,7 @@
 import river as rv
 
 from honeycomb import check, meta
-from honeycomb.alter_table import add_partitions
+from honeycomb.alter_table import add_partition
 
 
 def append_df_to_table(df, table_name, schema=None, filename=None,
@@ -18,7 +18,7 @@ def append_df_to_table(df, table_name, schema=None, filename=None,
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
         partition_values (dict<str:str>, optional):
-            List of tuples containing partition name and value to
+            List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
             it will be created.
         require_identical_columns (bool, default True):
@@ -46,7 +46,7 @@ def append_df_to_table(df, table_name, schema=None, filename=None,
         path += '/'
 
     if partition_values:
-        path += add_partitions(table_name, schema, partition_values)
+        path += add_partition(table_name, schema, partition_values)
 
     path += filename
 
@@ -86,7 +86,7 @@ def reorder_columns_for_appending(df, table_name, schema,
         table_name (str): The name of the table to be created
         schema (str): Name of the schema to create the table in
         partition_values (dict<str:str>, optional):
-            List of tuples containing partition name and value to
+            List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
             it will be created.
         require_identical_columns (bool):
