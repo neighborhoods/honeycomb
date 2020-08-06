@@ -24,4 +24,7 @@ def describe_table(table_name, schema=None,
         schema=schema,
         table_name=table_name)
     desc = run.lake_query(desc_query, engine)
+
+    if include_metadata:
+        desc = desc.loc[1:].reset_index(drop=True)
     return desc

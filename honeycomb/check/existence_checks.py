@@ -35,3 +35,44 @@ def check_table_existence(table_name, schema):
     if table_name in similar_tables['tab_name'].values:
         return True
     return False
+
+
+def check_partition_existence(table_name, schema,
+                              partition_values):
+    """
+    Checks if a specific partition exists in a specific table
+
+    Args:
+        schema (str): Which schema the table is in
+        table_name (str): The name of the table to check in
+        partition_values (dict<str:str>):
+
+    Returns:
+        bool: Whether or not the specified partition exists in the table
+    """
+    partition_value_strings = ', '.join(
+        ['{}=\'{}\''.format(partition_name, partition_value)
+         for partition_name, partition_value in partition_values.items()])
+    partition_spec = ' PARTITION({})'.format(partition_value_strings)
+
+    show_partitions_query = (
+        'SHOW PARTITIONS {schema}.{table_name}{partition_spec}'.format(
+            schema=schema,
+            table_name=table_name,
+            partition_spec=partition_spec)
+    )
+
+    similar_partitions = run.lake_query(
+        show_partitions_query, engine='hive')['partition']
+    if len(similar_partitions):
+        for partition in similar_partitions.str.split('/'):
+            existing_partition_values = {
+                partition_key: partition_value
+                for partition_key, partition_value in [
+                    partition_value_str.split('=')
+                    for partition_value_str in partition
+                ]
+            }
+            if partition_values == existing_partition_values:
+                return True
+    return False
