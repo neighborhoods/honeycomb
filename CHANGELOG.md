@@ -20,16 +20,13 @@ old table and remove its underlying files.
 - `append_df_to_table` now has overwrite protection. If a conflicting key is already
 present in S3, the function will fail.
 - Can create tables in Avro format
-<<<<<<< HEAD
-- Automatic timezone conversion for table creation/appending. Outside of the
-experimental zone, all datetime columns will be expected to be timezone-aware,
-or have a timezone value provided for `honeycomb` to use to make them timezone-aware.
-=======
 - Can add partitions to tables
 - `create_table_from_df` now has an `auto_upload_df` parameter. If `False`,
 the function will use the dataframe to generate a `CREATE TABLE` statement
 and will run it, but will not upload the dataframe itself to the lake.
->>>>>>> master
+- Automatic timezone conversion for table creation/appending. Outside of the
+experimental zone, all datetime columns will be expected to be timezone-aware,
+or have a timezone value provided for `honeycomb` to use to make them timezone-aware.
 
 ### Changed
 - Renamed `append_df` to `append_df_to_table` for more explicit language
