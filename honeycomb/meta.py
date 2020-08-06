@@ -83,8 +83,16 @@ def get_table_column_order(table_name, schema):
         table_name (str): The table to get the column order of
         schema (str): The schema the table is in
     """
-    description = describe_table(table_name, schema)
-    return description['col_name'].to_list()
+    colname_col = 'col_name'
+    description = describe_table(table_name, schema, include_metadata=True)
+    if any(description[colname_col] == '# Partition Information'):
+        colname_end = description.index[
+            description['col_name'] == '# Partition Information'][0] - 2
+
+        columns = description.loc[0:colname_end, 'col_name']
+    else:
+        columns = description['col_name']
+    return columns.to_list()
 
 
 def get_table_metadata(table_name, schema_name):
@@ -142,6 +150,7 @@ def get_table_storage_type_from_metadata(table_metadata):
         table_metadata (pd.DataFrame): Metadata of the table being examined
     """
     hive_input_format_to_storage_type = {
+        'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat': 'avro',
         'org.apache.hadoop.mapred.TextInputFormat': 'csv',
         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat': 'pq'
     }

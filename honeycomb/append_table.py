@@ -1,11 +1,12 @@
 import river as rv
 
 from honeycomb import check, meta, dtype_mapping
+from honeycomb.alter_table import add_partition
 
 
-def append_table(df, table_name, schema=None, dtypes=None,
-                 filename=None, timezones=None, copy_df=True,
-                 require_identical_columns=True):
+def append_df_to_table(df, table_name, schema=None, dtypes=None,
+                       filename=None, timezones=None, copy_df=True,
+                       partition_values=None, require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -32,6 +33,10 @@ def append_table(df, table_name, schema=None, dtypes=None,
             the original df passed in will be modified as well - twice as
             memory efficient, but may be undesirable if the df is needed
             again later
+        partition_values (dict<str:str>, optional):
+            List of tuples containing partition keys and values to
+            store the dataframe under. If there is no partiton at the value,
+            it will be created.
         require_identical_columns (bool, default True):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
@@ -55,6 +60,10 @@ def append_table(df, table_name, schema=None, dtypes=None,
         filename = meta.gen_filename_if_allowed(schema, storage_type)
     if not path.endswith('/'):
         path += '/'
+
+    if partition_values:
+        path += add_partition(table_name, schema, partition_values)
+
     path += filename
 
     if rv.exists(path, bucket):
@@ -66,6 +75,7 @@ def append_table(df, table_name, schema=None, dtypes=None,
         df, spec_dtypes=dtypes, spec_timezones=timezones,
         schema=schema, copy_df=copy_df)
     df = reorder_columns_for_appending(df, table_name, schema,
+                                       partition_values,
                                        require_identical_columns)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
@@ -73,6 +83,7 @@ def append_table(df, table_name, schema=None, dtypes=None,
 
 
 def reorder_columns_for_appending(df, table_name, schema,
+                                  partition_values,
                                   require_identical_columns):
     """
     Serialized formats such as Parquet don't necessarily have to worry
@@ -93,14 +104,18 @@ def reorder_columns_for_appending(df, table_name, schema,
         df (pd.DataFrame): The dataframe to reorder
         table_name (str): The name of the table to be created
         schema (str): Name of the schema to create the table in
+        partition_values (dict<str:str>, optional):
+            List of tuples containing partition keys and values to
+            store the dataframe under. If there is no partiton at the value,
+            it will be created.
         require_identical_columns (bool):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
     table_col_order = meta.get_table_column_order(table_name, schema)
     if sorted(table_col_order) == sorted(df.columns):
-        df = df[table_col_order]
-        return df
+        return df[table_col_order]
+
     elif not require_identical_columns:
         cols_missing_from_df = [col for col in table_col_order
                                 if col not in df.columns]
