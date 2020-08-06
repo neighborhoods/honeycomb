@@ -26,7 +26,7 @@ the function will use the dataframe to generate a `CREATE TABLE` statement
 and will run it, but will not upload the dataframe itself to the lake.
 
 ### Changed
-- Renamed `append_df_to_table` to `append_df_to_table` for more explicit language
+- Renamed `append_df` to `append_df_to_table` for more explicit language
 - Full table and column comments are required for creating a table outside of
 the experimental zone.
 - `append_df_to_table` now reorders columns when needed and can handle missing/extra columns.
