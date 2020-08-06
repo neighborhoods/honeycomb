@@ -5,9 +5,8 @@ import sys
 
 import river as rv
 
-from honeycomb import check, meta, run_query as run
+from honeycomb import check, dtype_mapping, meta, run_query as run
 from honeycomb.alter_table import add_partition
-from honeycomb.dtype_mapping import apply_spec_dtypes, map_pd_to_db_dtypes
 
 
 schema_to_zone_bucket_map = {
@@ -142,6 +141,7 @@ def confirm_ordered_dicts():
 def create_table_from_df(df, table_name, schema=None,
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
+                         timezones=None, copy_df=True,
                          partitioned_by=None, partition_values=None,
                          overwrite=False, auto_upload_df=True):
     """
@@ -162,6 +162,19 @@ def create_table_from_df(df, table_name, schema=None,
         table_comment (str, optional): Documentation on the table's purpose
         col_comments (dict<str:str>, optional):
             Dictionary from column name keys to column descriptions.
+        timezones (dict<str, str>):
+            Dictionary from datetime columns to the timezone they
+            represent. If the column is timezone-naive, it will have the
+            timezone added to its metadata, leaving the times themselves
+            unmodified. If the column is timezone-aware and is in a different
+            timezone than the one that is specified, the column's timezone
+            will be converted, modifying the original times.
+        copy_df (bool):
+            Whether the operations performed on df should be performed on the
+            original or a copy. Keep in mind that if this is set to False,
+            the original df passed in will be modified as well - twice as
+            memory efficient, but may be undesirable if the df is needed
+            again later
         partitioned_by (dict<str:str>,
                     collections.OrderedDict<str:str>, or
                     list<tuple<str:str>>, optional):
@@ -234,9 +247,9 @@ def create_table_from_df(df, table_name, schema=None,
             'A file already exists at s3://' + bucket + path + ', Which will '
             'be overwritten by this operation. Specify a different filename.')
 
-    if dtypes is not None:
-        df = apply_spec_dtypes(df, dtypes)
-    col_defs = map_pd_to_db_dtypes(df)
+    df = dtype_mapping.special_dtype_handling(
+        df, dtypes, timezones, schema, copy_df)
+    col_defs = dtype_mapping.map_pd_to_db_dtypes(df)
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
     storage_type = os.path.splitext(filename)[-1][1:].lower()

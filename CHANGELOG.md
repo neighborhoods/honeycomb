@@ -24,6 +24,9 @@ present in S3, the function will fail.
 - `create_table_from_df` now has an `auto_upload_df` parameter. If `False`,
 the function will use the dataframe to generate a `CREATE TABLE` statement
 and will run it, but will not upload the dataframe itself to the lake.
+- Automatic timezone conversion for table creation/appending. Outside of the
+experimental zone, all datetime columns will be expected to be timezone-aware,
+or have a timezone value provided for `honeycomb` to use to make them timezone-aware.
 - Support for `STRUCT` data type
 
 ### Changed

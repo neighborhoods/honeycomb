@@ -12,8 +12,8 @@ def test_append_df_to_table(mocker, setup_bucket_w_contents,
     as shown by the DataFrame being present at the expected location in S3
     """
     mocker.patch('honeycomb.check.table_existence', return_value=True)
-    mocker.patch('honeycomb.append_table.reorder_columns_for_appending',
-                 return_value=test_df)
+    mocker.patch('honeycomb.meta.get_table_column_order',
+                 return_value=test_df.columns.to_list())
 
     storage_type = 'csv'
     filename = test_df_key.split('.')[0]

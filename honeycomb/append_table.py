@@ -1,10 +1,11 @@
 import river as rv
 
-from honeycomb import check, meta
+from honeycomb import check, meta, dtype_mapping
 from honeycomb.alter_table import add_partition
 
 
-def append_df_to_table(df, table_name, schema=None, filename=None,
+def append_df_to_table(df, table_name, schema=None, dtypes=None,
+                       filename=None, timezones=None, copy_df=True,
                        partition_values=None, require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
@@ -14,9 +15,24 @@ def append_df_to_table(df, table_name, schema=None, filename=None,
         df (pd.DataFrame): Which schema to check for the table in
         table_name (str): The name of the table to be created
         schema (str, optional): Name of the schema to create the table in
+        dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
+            specific columns to be cast to prior to uploading.
         filename (str, optional):
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
+        timezones (dict<str, str>):
+            Dictionary from datetime columns to the timezone they
+            represent. If the column is timezone-naive, it will have the
+            timezone added to its metadata, leaving the times themselves
+            unmodified. If the column is timezone-aware and is in a different
+            timezone than the one that is specified, the column's timezone
+            will be converted, modifying the original times.
+        copy_df (bool):
+            Whether the operations performed on df should be performed on the
+            original or a copy. Keep in mind that if this is set to False,
+            the original df passed in will be modified as well - twice as
+            memory efficient, but may be undesirable if the df is needed
+            again later
         partition_values (dict<str:str>, optional):
             List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
@@ -55,6 +71,9 @@ def append_df_to_table(df, table_name, schema=None, filename=None,
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')
 
+    df = dtype_mapping.special_dtype_handling(
+        df, spec_dtypes=dtypes, spec_timezones=timezones,
+        schema=schema, copy_df=copy_df)
     df = reorder_columns_for_appending(df, table_name, schema,
                                        partition_values,
                                        require_identical_columns)
