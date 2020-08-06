@@ -5,8 +5,7 @@ import sys
 
 import river as rv
 
-from honeycomb import check, meta, run_query as run
-from honeycomb import dtype_mapping
+from honeycomb import check, dtype_mapping, meta, run_query as run
 from honeycomb.alter_table import add_partition
 
 
