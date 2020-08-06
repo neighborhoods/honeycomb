@@ -1,5 +1,6 @@
 import logging
 
+import pandas as pd
 from pandas.core.dtypes.api import (is_datetime64_any_dtype,
                                     is_datetime64_dtype,
                                     is_datetime64tz_dtype)
@@ -13,7 +14,7 @@ The pandas dtype 'category' is for categorical variables, but hive does not
 have native support for categorical types. As a result, it is not included here
 """
 dtype_map = {
-    'object': 'STRING',
+    'object': 'COMPLEX',
     'int64': 'BIGINT',
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
@@ -161,4 +162,38 @@ def map_pd_to_db_dtypes(df):
         # dtypes can be compared to their string representations for equality
         db_dtypes[db_dtypes == orig_type] = new_type
 
+    if any(db_dtypes.eq('COMPLEX')):
+        db_dtypes = handle_complex_dtypes(
+            df.loc[:, db_dtypes.eq('COMPLEX')], db_dtypes)
+    return db_dtypes
+
+
+def handle_complex_dtypes(df_complex_cols, db_dtypes):
+    db_dtypes = {col: type for col, type in zip(db_dtypes.index, db_dtypes)}
+    for col in df_complex_cols.columns:
+        python_types = df_complex_cols[col].apply(type)
+
+        if all(python_types.isin([type(None)])):
+            db_dtypes[col] = 'STRING'
+        if all(python_types.isin([str, type(None)])):
+            db_dtypes[col] = 'STRING'
+        elif all(python_types.isin([dict, type(None)])):
+            dtype_str = 'STRUCT <'
+            struct_df = pd.DataFrame()
+            for struct in df_complex_cols[col]:
+                struct_df = struct_df.append(
+                    pd.DataFrame.from_records([struct]))
+            struct_dtypes = map_pd_to_db_dtypes(struct_df)
+            dtype_str += ', '.join(
+                ['{}: {}'.format(col_name, col_type)
+                 for col_name, col_type in struct_dtypes.items()])
+
+            dtype_str += '>'
+            db_dtypes[col] = dtype_str
+        else:
+            raise TypeError('Values passed to complex column "{}" are either '
+                            'of unsupported types of mixed types. Currently '
+                            'supported complex types are "STRING" and '
+                            '"STRUCT" (dictionary). Columns must contain '
+                            'homogenous types.')
     return db_dtypes

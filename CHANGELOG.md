@@ -27,6 +27,7 @@ and will run it, but will not upload the dataframe itself to the lake.
 - Automatic timezone conversion for table creation/appending. Outside of the
 experimental zone, all datetime columns will be expected to be timezone-aware,
 or have a timezone value provided for `honeycomb` to use to make them timezone-aware.
+- Support for `STRUCT` data type
 
 ### Changed
 - Renamed `append_df` to `append_df_to_table` for more explicit language

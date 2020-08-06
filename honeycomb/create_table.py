@@ -43,7 +43,9 @@ LOCATION 's3://{full_path}'
     """.format(
         schema=schema,
         table_name=table_name,
-        columns_and_types=col_defs.to_string(
+        # BUG: pd.Series truncates long strings output by to_string,
+        # have to cast to DataFrame first.
+        columns_and_types=col_defs.to_frame().to_string(
             header=False).replace('\n', ',\n    '),
         table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
@@ -250,7 +252,6 @@ def create_table_from_df(df, table_name, schema=None,
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df)
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
-
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
