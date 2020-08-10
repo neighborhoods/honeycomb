@@ -14,15 +14,15 @@ def test_map_pd_to_db_dtypes(test_df_all_types):
     """Tests that dtype mapping behaves as expected under valid conditions"""
     mapped_dtypes = map_pd_to_db_dtypes(test_df_all_types)
 
-    expected_dtypes = pd.Series({
+    expected_dtypes = {
         'intcol': 'BIGINT',
         'strcol': 'STRING',
         'floatcol': 'DOUBLE',
         'boolcol': 'BOOLEAN',
         'datetimecol': 'TIMESTAMP',
-    })
+    }
 
-    assert mapped_dtypes.equals(expected_dtypes)
+    assert mapped_dtypes == expected_dtypes
 
 
 def test_map_pd_to_db_dtypes_unsupported_fails():
