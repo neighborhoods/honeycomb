@@ -169,7 +169,7 @@ def map_pd_to_db_dtypes(df):
 
 
 def handle_complex_dtypes(df_complex_cols, db_dtypes):
-    db_dtypes = {col: type for col, type in zip(db_dtypes.index, db_dtypes)}
+    # db_dtypes = {col: type for col, type in zip(db_dtypes.index, db_dtypes)}
     for col in df_complex_cols.columns:
         python_types = df_complex_cols[col].apply(type)
 
