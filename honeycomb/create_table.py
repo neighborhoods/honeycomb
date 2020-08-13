@@ -236,16 +236,11 @@ def create_table_from_df(df, table_name, schema=None,
 
     if rv.list_objects(path, bucket):
         raise KeyError((
-            'Files are already present in s3://{}/{}, indicating an existing '
-            'table. Creation of a new table requires a dedicated, empty '
-            'folder. If this is desired, set "overwrite" to True. '
-            'This will completely delete any files in the specified path. '
-            'Otherwise, specify a different filename.').format(bucket, path))
-
-    if not overwrite and rv.exists(path, bucket):
-        raise KeyError(
-            'A file already exists at s3://' + bucket + path + ', Which will '
-            'be overwritten by this operation. Specify a different filename.')
+            'Files are already present in s3://{}/{}. Creation of a new table '
+            'requires a dedicated, empty folder. Either specify a different '
+            'path or set "overwrite" to True (use at your own risk). '
+            'This will completely delete any files in '
+            'the specified path.').format(bucket, path))
 
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
