@@ -238,9 +238,8 @@ def create_table_from_df(df, table_name, schema=None,
         raise KeyError((
             'Files are already present in s3://{}/{}. Creation of a new table '
             'requires a dedicated, empty folder. Either specify a different '
-            'path or set "overwrite" to True (use at your own risk). '
-            'This will completely delete any files in '
-            'the specified path.').format(bucket, path))
+            'path for the table or ensure the directory is empty before '
+            'attempting table creation.').format(bucket, path))
 
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
