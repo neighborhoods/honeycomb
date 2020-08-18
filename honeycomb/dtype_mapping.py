@@ -140,7 +140,7 @@ def apply_spec_dtypes(df, spec_dtypes):
     return df
 
 
-def map_pd_to_db_dtypes(df):
+def map_pd_to_db_dtypes(df, storage_type):
     """
     Creates a mapping from the dtypes in a DataFrame to their corresponding
     dtypes in Hive
@@ -163,36 +163,72 @@ def map_pd_to_db_dtypes(df):
         db_dtypes[db_dtypes == orig_type] = new_type
 
     if any(db_dtypes.eq('COMPLEX')):
-        db_dtypes = handle_complex_dtypes(
-            df.loc[:, db_dtypes.eq('COMPLEX')], db_dtypes)
+        complex_cols = db_dtypes.eq('COMPLEX')
+        df[complex_cols], db_dtypes = handle_complex_dtypes(
+            df[complex_cols], db_dtypes, storage_type)
     return db_dtypes
 
 
-def handle_complex_dtypes(df_complex_cols, db_dtypes):
+def handle_complex_dtypes(df_complex_cols, db_dtypes, storage_type):
     for col in df_complex_cols.columns:
-        python_types = df_complex_cols[col].apply(type)
+        db_dtypes[col] = handle_complex_col(col, storage_type)
 
-        if all(python_types.isin([type(None)])):
-            db_dtypes[col] = 'STRING'
-        if all(python_types.isin([str, type(None)])):
-            db_dtypes[col] = 'STRING'
-        elif all(python_types.isin([dict, type(None)])):
-            dtype_str = 'STRUCT <'
-            struct_df = pd.DataFrame()
-            for struct in df_complex_cols[col]:
-                struct_df = struct_df.append(
-                    pd.DataFrame.from_records([struct]))
-            struct_dtypes = map_pd_to_db_dtypes(struct_df)
-            dtype_str += ', '.join(
-                ['{}: {}'.format(col_name, col_type)
-                 for col_name, col_type in struct_dtypes.items()])
+    if any(db_dtypes.str.contains('ARRAY')):
+        if storage_type == 'csv':
+            if any(db_dtypes.str.count('ARRAY') > 1):
+                raise TypeError('Nested arrays are not currently supported in '
+                                'the CSV storage format.')
+            df_complex_cols = df_complex_cols.apply(
+                lambda x: x.apply(lambda y: str(y)[1:-1].replace(', ', '|')))
+        elif storage_type == 'avro':
+            raise TypeError(
+                'Honeycomb does not currently support array columns '
+                'when saving to the avro filetype.')
+    return df_complex_cols, db_dtypes
 
-            dtype_str += '>'
-            db_dtypes[col] = dtype_str
-        else:
-            raise TypeError('Values passed to complex column "{}" are either '
-                            'of unsupported types of mixed types. Currently '
-                            'supported complex types are "STRING" and '
-                            '"STRUCT" (dictionary). Columns must contain '
-                            'homogenous types.')
-    return db_dtypes
+
+def handle_complex_col(col, storage_type):
+    python_types = col.apply(type)
+    if all(python_types.isin([type(None)])):
+        return 'STRING'
+    elif all(python_types.isin([str, type(None)])):
+        return 'STRING'
+    elif all(python_types.isin([list, type(None)])):
+        return build_array_ddl(col, storage_type)
+    elif all(python_types.isin([dict, type(None)])):
+        return build_struct_ddl(col)
+    else:
+        raise TypeError(
+            'Values passed to complex column "{}" are either of '
+            'unsupported types of mixed types. Currently supported '
+            'complex types are "STRING" and "STRUCT" (dictionary). '
+            'Columns must contain homogenous types.')
+
+
+def build_array_ddl(col, storage_type):
+    dtype_str = 'ARRAY <'
+
+    array_series = pd.Series()
+    for array in col:
+        array_series.append(pd.Series(array))
+    array_dtype = dtype_map[array_series.dtype]
+    if array_dtype == 'COMPLEX':
+        array_dtype = handle_complex_col(col, storage_type)
+
+    dtype_str += array_dtype + '>'
+    return dtype_str
+
+
+def build_struct_ddl(col):
+    dtype_str = 'STRUCT <'
+    struct_df = pd.DataFrame()
+    for struct in col:
+        struct_df = struct_df.append(
+            pd.DataFrame.from_records([struct]))
+    struct_dtypes = map_pd_to_db_dtypes(struct_df)
+    dtype_str += ', '.join(
+        ['{}: {}'.format(col_name, col_type)
+         for col_name, col_type in struct_dtypes.items()])
+
+    dtype_str += '>'
+    return dtype_str
