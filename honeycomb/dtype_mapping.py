@@ -171,32 +171,27 @@ def map_pd_to_db_dtypes(df, storage_type):
 
 def handle_complex_dtypes(df_complex_cols, db_dtypes, storage_type):
     for col in df_complex_cols.columns:
-        db_dtypes[col] = handle_complex_col(col, storage_type)
+        df_complex_cols[col], db_dtypes[col] = handle_complex_col(
+            df_complex_cols[col], storage_type)
 
     if any(db_dtypes.str.contains('ARRAY')):
         if storage_type == 'csv':
             if any(db_dtypes.str.count('ARRAY') > 1):
                 raise TypeError('Nested arrays are not currently supported in '
                                 'the CSV storage format.')
-            df_complex_cols = df_complex_cols.apply(
-                lambda x: x.apply(lambda y: str(y)[1:-1].replace(', ', '|')))
-        else:
-            raise TypeError(
-                'Honeycomb currently only supports array columns '
-                'when storing as CSV.')
     return df_complex_cols, db_dtypes
 
 
 def handle_complex_col(col, storage_type):
     python_types = col.apply(type)
     if all(python_types.isin([type(None)])):
-        return 'STRING'
+        return col, 'STRING'
     elif all(python_types.isin([str, type(None)])):
-        return 'STRING'
+        return col, 'STRING'
     elif all(python_types.isin([list, type(None)])):
-        return build_array_ddl(col, storage_type)
+        return handle_array_col(col, storage_type)
     elif all(python_types.isin([dict, type(None)])):
-        return build_struct_ddl(col)
+        return handle_struct_col(col, storage_type)
     else:
         raise TypeError(
             'Values passed to complex column "{}" are either of '
@@ -205,30 +200,41 @@ def handle_complex_col(col, storage_type):
             'Columns must contain homogenous types.')
 
 
-def build_array_ddl(col, storage_type):
+def handle_array_col(col, storage_type):
     dtype_str = 'ARRAY <'
 
     array_series = pd.Series()
     for array in col:
-        array_series.append(pd.Series(array))
-    array_dtype = dtype_map[array_series.dtype]
+        array_series = array_series.append(pd.Series(array))
+    array_dtype = dtype_map[array_series.dtype.name]
     if array_dtype == 'COMPLEX':
         array_dtype = handle_complex_col(col, storage_type)
 
     dtype_str += array_dtype + '>'
-    return dtype_str
+
+    if storage_type == 'csv':
+        col = col.apply(lambda x: str(x)[1:-1].replace(', ', '|'))
+    else:
+        raise TypeError(
+            'Honeycomb currently only supports array columns '
+            'when storing as CSV.')
+
+    return col, dtype_str
 
 
-def build_struct_ddl(col):
+def handle_struct_col(col, storage_type):
     dtype_str = 'STRUCT <'
     struct_df = pd.DataFrame()
     for struct in col:
         struct_df = struct_df.append(
             pd.DataFrame.from_records([struct]))
-    struct_dtypes = map_pd_to_db_dtypes(struct_df)
+    struct_dtypes = map_pd_to_db_dtypes(struct_df, storage_type)
     dtype_str += ', '.join(
         ['{}: {}'.format(col_name, col_type)
          for col_name, col_type in struct_dtypes.items()])
 
     dtype_str += '>'
-    return dtype_str
+    if storage_type == 'csv':
+        col = col.apply(lambda x:
+                        str(list(x.values()))[1:-1].replace(', ', '|'))
+    return col, dtype_str
