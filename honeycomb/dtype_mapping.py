@@ -231,20 +231,13 @@ def handle_array_col(col, storage_type):
             if storage_type == 'csv':
                 col = col.apply(lambda x: '|'.join([y for y in x]))
         elif reduced_type == 'list':
-            raise TypeError(
-                'Nested arrays are not currently supported by honeycomb.')
+            pass
         elif reduced_type == 'dict':
             pass
-        # _, array_dtype = handle_complex_col(array_series, storage_type)
     else:
         col = col.apply(lambda x: str(x)[1:-1].replace(', ', '|'))
 
     dtype_str += array_dtype + '>'
-
-    # else:
-    #     raise TypeError(
-    #         'Honeycomb currently only supports array columns '
-    #         'when storing as CSV.')
 
     return col, dtype_str
 
