@@ -163,7 +163,7 @@ def map_pd_to_db_dtypes(df, storage_type):
         db_dtypes[db_dtypes == orig_type] = new_type
 
     if any(db_dtypes.eq('COMPLEX')):
-        complex_cols = db_dtypes.eq('COMPLEX')
+        complex_cols = db_dtypes.index[db_dtypes.eq('COMPLEX')]
         df[complex_cols], db_dtypes = handle_complex_dtypes(
             df[complex_cols], db_dtypes, storage_type)
     return db_dtypes
@@ -180,10 +180,10 @@ def handle_complex_dtypes(df_complex_cols, db_dtypes, storage_type):
                                 'the CSV storage format.')
             df_complex_cols = df_complex_cols.apply(
                 lambda x: x.apply(lambda y: str(y)[1:-1].replace(', ', '|')))
-        elif storage_type == 'avro':
+        else:
             raise TypeError(
-                'Honeycomb does not currently support array columns '
-                'when saving to the avro filetype.')
+                'Honeycomb currently only supports array columns '
+                'when storing as CSV.')
     return df_complex_cols, db_dtypes
 
 
