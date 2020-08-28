@@ -228,14 +228,12 @@ def handle_array_col(col, storage_type):
         reduced_type = reduce_complex_type(array_series)
         if reduced_type == 'string':
             array_dtype = 'STRING'
-            if storage_type == 'csv':
-                col = col.apply(lambda x: '|'.join([y for y in x]))
         elif reduced_type == 'list':
             pass
         elif reduced_type == 'dict':
             pass
-    else:
-        col = col.apply(lambda x: str(x)[1:-1].replace(', ', '|'))
+    if storage_type == 'csv':
+        col = col.apply(lambda x: '|'.join([y for y in x]))
 
     dtype_str += array_dtype + '>'
 
