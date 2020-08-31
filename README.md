@@ -31,21 +31,23 @@ a result the average use case of it is very straightforward.
         in queries.
             * NOTE: BigQuery uses different SQL syntax than the lake, and this
             must be reflected in your queries.
+        2. Salesforce - Runs against data stored in the Salesforce Object Manager.
+            * NOTE: Salesforce uses SOQL, which has different syntax than the lake.
 
 ### Running Queries
-The `run_query` function allows for running queries through multiple different
-query engines.
+The `run_lake_query` function allows for running queries through either the
+`presto` or `hive` querying engines.
 
 ```
 import honeycomb as hc
 
-df0 = hc.run_query('SELECT COUNT(*) FROM experimental.test_table',
+df0 = hc.run_lake_query('SELECT COUNT(*) FROM experimental.test_table',
                    engine='presto')
 
-df1 = hc.run_query('SELECT COUNT(*) FROM experimental.test_table',
+df1 = hc.run_lake_query('SELECT COUNT(*) FROM experimental.test_table',
                    engine='hive')
 
-df2 = hc.run_query('SELECT COUNT(*) FROM `places-clickstream`.12345678.20200501',
+df2 = hc.run_lake_query('SELECT COUNT(*) FROM `places-clickstream`.12345678.20200501',
                    engine='gbq', project_id='places-clickstream')
 ```
 
