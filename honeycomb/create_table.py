@@ -5,9 +5,8 @@ import sys
 
 import river as rv
 
-from honeycomb import check, dtype_mapping, meta
+from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
-from honeycomb.hive import run_lake_query
 
 
 schema_to_zone_bucket_map = {
@@ -257,7 +256,7 @@ def create_table_from_df(df, table_name, schema=None,
                                               storage_type, partitioned_by,
                                               full_path)
     print(create_table_ddl)
-    run_lake_query(create_table_ddl, engine='hive')
+    hive.run_lake_query(create_table_ddl, engine='hive')
 
     if partitioned_by:
         path += add_partition(table_name, schema, partition_values)
@@ -281,7 +280,7 @@ def __nuke_table(table_name, schema):
     table_metadata = meta.get_table_metadata(table_name, schema)
     current_bucket = table_metadata['bucket']
     current_path = table_metadata['path']
-    run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
+    hive.run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
         schema,
         table_name
     ))

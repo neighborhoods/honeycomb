@@ -1,7 +1,8 @@
+from .hive import run_lake_query
 from .append_table import append_df_to_table
 from .create_table import create_table_from_df
 from .describe_table import describe_table
-from .hive import run_lake_query
+
 from .meta import get_table_storage_type_from_metadata
 from . import alter_table, check
 

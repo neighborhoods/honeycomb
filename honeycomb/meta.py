@@ -1,7 +1,8 @@
 from datetime import datetime
 
+from honeycomb import hive
 from honeycomb.describe_table import describe_table
-from honeycomb.hive import run_lake_query
+
 
 storage_type_specs = {
     'avro': {
@@ -108,7 +109,7 @@ def get_table_metadata(table_name, schema):
         schema=schema,
         table_name=table_name
     )
-    table_metadata = run_lake_query(create_stmt_query, 'hive')
+    table_metadata = hive.run_lake_query(create_stmt_query, 'hive')
 
     bucket, path = get_table_s3_location_from_metadata(table_metadata)
     storage_type = get_table_storage_type_from_metadata(table_metadata)
