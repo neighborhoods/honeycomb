@@ -5,8 +5,9 @@ import sys
 
 import river as rv
 
-from honeycomb import check, dtype_mapping, meta, run_query as run
+from honeycomb import check, dtype_mapping, meta
 from honeycomb.alter_table import add_partition
+from honeycomb.hive import run_lake_query
 
 
 schema_to_zone_bucket_map = {
@@ -31,7 +32,7 @@ def add_comments_to_col_defs(col_defs, comments):
     return col_defs
 
 
-def build_create_table_ddl(schema, table_name, col_defs,
+def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
                            partitioned_by, full_path):
     create_table_ddl = """
@@ -251,12 +252,12 @@ def create_table_from_df(df, table_name, schema=None,
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
 
-    create_table_ddl = build_create_table_ddl(schema, table_name,
+    create_table_ddl = build_create_table_ddl(table_name, schema,
                                               col_defs, table_comment,
                                               storage_type, partitioned_by,
                                               full_path)
     print(create_table_ddl)
-    run.lake_query(create_table_ddl, engine='hive')
+    run_lake_query(create_table_ddl, engine='hive')
 
     if partitioned_by:
         path += add_partition(table_name, schema, partition_values)
@@ -280,7 +281,7 @@ def __nuke_table(table_name, schema):
     table_metadata = meta.get_table_metadata(table_name, schema)
     current_bucket = table_metadata['bucket']
     current_path = table_metadata['path']
-    run.lake_query('DROP TABLE IF EXISTS {}.{}'.format(
+    run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
         schema,
         table_name
     ))
