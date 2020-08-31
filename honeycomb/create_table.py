@@ -51,8 +51,8 @@ LOCATION 's3://{full_path}'
             table_comment=table_comment)) if table_comment else '',
         partitioned_by=('\nPARTITIONED BY ({})'.format(', '.join(
             ['{} {}'.format(partition_name, partition_type)
-             for partition_name, partition_type in partitioned_by.items()])
-            if partitioned_by else '')),
+             for partition_name, partition_type in partitioned_by.items()]))
+            if partitioned_by else ''),
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
         full_path=full_path.rsplit('/', 1)[0] + '/'
     )
@@ -241,12 +241,13 @@ def create_table_from_df(df, table_name, schema=None,
             'path for the table or ensure the directory is empty before '
             'attempting table creation.').format(bucket, path))
 
+    storage_type = os.path.splitext(filename)[-1][1:].lower()
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
-    col_defs = dtype_mapping.map_pd_to_db_dtypes(df)
+    col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
-    storage_type = os.path.splitext(filename)[-1][1:].lower()
+
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
 
