@@ -12,7 +12,7 @@ from honeycomb.dtype_mapping import (apply_spec_dtypes,
 
 def test_map_pd_to_db_dtypes(test_df_all_types):
     """Tests that dtype mapping behaves as expected under valid conditions"""
-    mapped_dtypes = map_pd_to_db_dtypes(test_df_all_types)
+    mapped_dtypes = map_pd_to_db_dtypes(test_df_all_types, storage_type='csv')
 
     expected_dtypes = pd.Series({
         'intcol': 'BIGINT',
@@ -35,14 +35,14 @@ def test_map_pd_to_db_dtypes_unsupported_fails():
     })
 
     with pytest.raises(TypeError, match='categorical.* not supported'):
-        map_pd_to_db_dtypes(cat_df)
+        map_pd_to_db_dtypes(cat_df, storage_type='csv')
 
     td_df = pd.DataFrame({
         'timedeltacol': [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
     })
 
     with pytest.raises(TypeError, match=r'timedelta64\[ns\].* not supported'):
-        map_pd_to_db_dtypes(td_df)
+        map_pd_to_db_dtypes(td_df, storage_type='csv')
 
 
 def test_apply_spec_dtypes(test_df_all_types):

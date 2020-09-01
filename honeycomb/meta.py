@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from honeycomb import run_query as run
+from honeycomb import hive
 from honeycomb.describe_table import describe_table
+
 
 storage_type_specs = {
     'avro': {
@@ -40,19 +41,19 @@ def prep_schema_and_table(table, schema):
     return table, schema
 
 
-def gen_filename_if_allowed(schema_name, storage_type=None):
+def gen_filename_if_allowed(schema, storage_type=None):
     """
     Pass-through to name generation fn, if writing to the experimental zone
 
     Args:
-        schema_name (str):
+        schema (str):
             The name of the schema to be written to.
             Used to determine if a generated filename is permitted.
         storage_type (str, optional):
             Desired storage format of file to be stored. Passed through to
             'generate_s3_filename'
     """
-    if schema_name == 'experimental':
+    if schema == 'experimental':
         filename = generate_s3_filename(storage_type)
         return filename
     else:
@@ -96,7 +97,7 @@ def get_table_column_order(table_name, schema):
     return columns.to_list()
 
 
-def get_table_metadata(table_name, schema_name):
+def get_table_metadata(table_name, schema):
     """
     Gets the metadata a data lake table
 
@@ -104,11 +105,11 @@ def get_table_metadata(table_name, schema_name):
         table_name (str): The table to get the metadata of
         schema (str): The schema the table is in
     """
-    create_stmt_query = "SHOW CREATE TABLE {schema_name}.{table_name}".format(
-        schema_name=schema_name,
+    create_stmt_query = "SHOW CREATE TABLE {schema}.{table_name}".format(
+        schema=schema,
         table_name=table_name
     )
-    table_metadata = run.lake_query(create_stmt_query, 'hive')
+    table_metadata = hive.run_lake_query(create_stmt_query, 'hive')
 
     bucket, path = get_table_s3_location_from_metadata(table_metadata)
     storage_type = get_table_storage_type_from_metadata(table_metadata)

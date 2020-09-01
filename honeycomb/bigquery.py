@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def gbq_query(query, project_id='places-clickstream'):
+def run_gbq_query(query, project_id='places-clickstream'):
     """
     BigQuery-specific query function
 
