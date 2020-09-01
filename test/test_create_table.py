@@ -15,7 +15,8 @@ def test_create_table_from_df_csv(mocker, setup_bucket_wo_contents,
     schema = 'experimental'
     mocker.patch.dict('honeycomb.create_table.schema_to_zone_bucket_map',
                       {schema: test_bucket}, clear=True)
-    mocker.patch('honeycomb.run_query.lake_query', return_value=False)
+
+    mocker.patch('honeycomb.hive.run_lake_query', return_value=False)
     mocker.patch('honeycomb.check.table_existence', return_value=False)
 
     table_name = 'test_table'

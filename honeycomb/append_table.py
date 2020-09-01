@@ -5,8 +5,9 @@ from honeycomb.alter_table import add_partition
 
 
 def append_df_to_table(df, table_name, schema=None, dtypes=None,
-                       filename=None, timezones=None, copy_df=True,
-                       partition_values=None, require_identical_columns=True):
+                       filename=None, overwrite_file=False, timezones=None,
+                       copy_df=True, partition_values=None,
+                       require_identical_columns=True):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -20,6 +21,9 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
         filename (str, optional):
             Name to store the file under. Can be left blank if writing to the
             experimental zone, in which case a name will be generated.
+        overwrite_file (bool):
+            Whether to overwrite the file if a file with a matching name
+            to "filename" is already present in S3.
         timezones (dict<str, str>):
             Dictionary from datetime columns to the timezone they
             represent. If the column is timezone-naive, it will have the
@@ -66,7 +70,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
 
     path += filename
 
-    if rv.exists(path, bucket):
+    if rv.exists(path, bucket) and not overwrite_file:
         raise KeyError('A file already exists at s3://' + bucket + path + ', '
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')

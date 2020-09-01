@@ -3,7 +3,7 @@ import pandas as pd
 from honeycomb.connection import get_db_connection
 
 
-def lake_query(query, engine='presto'):
+def run_lake_query(query, engine='presto'):
     """
     General wrapper function around querying with different engines
 

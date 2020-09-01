@@ -236,7 +236,6 @@ def handle_array_col(col, storage_type):
         col = col.apply(lambda x: '|'.join([y for y in x]))
 
     dtype_str += array_dtype + '>'
-
     return col, dtype_str
 
 

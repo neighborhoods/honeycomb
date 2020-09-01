@@ -5,7 +5,7 @@ import sys
 
 import river as rv
 
-from honeycomb import check, dtype_mapping, meta, run_query as run
+from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
 
 
@@ -31,7 +31,7 @@ def add_comments_to_col_defs(col_defs, comments):
     return col_defs
 
 
-def build_create_table_ddl(schema, table_name, col_defs,
+def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
                            partitioned_by, full_path):
     create_table_ddl = """
@@ -236,16 +236,10 @@ def create_table_from_df(df, table_name, schema=None,
 
     if rv.list_objects(path, bucket):
         raise KeyError((
-            'Files are already present in s3://{}/{}, indicating an existing '
-            'table. Creation of a new table requires a dedicated, empty '
-            'folder. If this is desired, set "overwrite" to True. '
-            'This will completely delete any files in the specified path. '
-            'Otherwise, specify a different filename.').format(bucket, path))
-
-    if not overwrite and rv.exists(path, bucket):
-        raise KeyError(
-            'A file already exists at s3://' + bucket + path + ', Which will '
-            'be overwritten by this operation. Specify a different filename.')
+            'Files are already present in s3://{}/{}. Creation of a new table '
+            'requires a dedicated, empty folder. Either specify a different '
+            'path for the table or ensure the directory is empty before '
+            'attempting table creation.').format(bucket, path))
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
     df = dtype_mapping.special_dtype_handling(
@@ -257,12 +251,12 @@ def create_table_from_df(df, table_name, schema=None,
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
 
-    create_table_ddl = build_create_table_ddl(schema, table_name,
+    create_table_ddl = build_create_table_ddl(table_name, schema,
                                               col_defs, table_comment,
                                               storage_type, partitioned_by,
                                               full_path)
     print(create_table_ddl)
-    run.lake_query(create_table_ddl, engine='hive')
+    hive.run_lake_query(create_table_ddl, engine='hive')
 
     if partitioned_by:
         path += add_partition(table_name, schema, partition_values)
@@ -286,7 +280,7 @@ def __nuke_table(table_name, schema):
     table_metadata = meta.get_table_metadata(table_name, schema)
     current_bucket = table_metadata['bucket']
     current_path = table_metadata['path']
-    run.lake_query('DROP TABLE IF EXISTS {}.{}'.format(
+    hive.run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
         schema,
         table_name
     ))

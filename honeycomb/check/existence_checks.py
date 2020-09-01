@@ -1,4 +1,4 @@
-from honeycomb import run_query as run
+from honeycomb import hive
 
 
 def check_schema_existence(schema):
@@ -6,7 +6,7 @@ def check_schema_existence(schema):
         'SHOW SCHEMAS LIKE \'{schema}\''.format(schema=schema)
     )
 
-    similar_schemas = run.lake_query(show_schemas_query)
+    similar_schemas = hive.run_lake_query(show_schemas_query)
     if similar_schemas is not None:
         # NOTE: 'database' and 'schema' are interchangeable terms in Hive
         if schema in similar_schemas['database_name']:
@@ -31,7 +31,7 @@ def check_table_existence(table_name, schema):
             table_name=table_name)
     )
 
-    similar_tables = run.lake_query(show_tables_query, engine='hive')
+    similar_tables = hive.run_lake_query(show_tables_query, engine='hive')
     if table_name in similar_tables['tab_name'].values:
         return True
     return False
@@ -62,7 +62,7 @@ def check_partition_existence(table_name, schema,
             partition_spec=partition_spec)
     )
 
-    similar_partitions = run.lake_query(
+    similar_partitions = hive.run_lake_query(
         show_partitions_query, engine='hive')['partition']
     if len(similar_partitions):
         for partition in similar_partitions.str.split('/'):
