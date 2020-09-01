@@ -1,12 +1,6 @@
 import boto3
 import pandas as pd
 
-try:
-    from simple_salesforce import Salesforce
-except ModuleNotFoundError:
-    raise ImportError('Package "simple-salesforce" is required to use '
-                      'honeycomb\'s "salesforce" module.')
-
 
 def get_secret(key):
     client = boto3.client('ssm', 'us-east-1')
@@ -21,6 +15,13 @@ def get_salesforce_conn():
     SALESFORCE_SECURITY_TOKEN available in the environment
     Returns: simple_salesforce.api.Salesforce: a Salesforce connection object.
     """
+    # TODO (maybe): Check for correct version of 'simple-salesforce'?
+    try:
+        from simple_salesforce import Salesforce
+    except ModuleNotFoundError:
+        raise ImportError('Package "simple-salesforce" is required to use '
+                          'honeycomb\'s "salesforce" module.')
+
     path = '/prod/lead-routing-serverless-functions/salesforce-data-science/'
     return Salesforce(
         username=get_secret(path + 'username'),

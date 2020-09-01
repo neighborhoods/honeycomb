@@ -28,11 +28,26 @@ a result the average use case of it is very straightforward.
         1. Google BigQuery - Runs against data stored in Google BigQuery. Currently,
         the only data stored there is clickstream data and cost information on
         our GA/GBQ accounts. Must provide a project ID, dataset, and table name
-        in queries.
-            * NOTE: BigQuery uses different SQL syntax than the lake, and this
-            must be reflected in your queries.
+        in queries. NOTE: BigQuery uses different SQL syntax than the lake, and this
+        must be reflected in your queries.
+        ```
+        from honeycomb.bigquery import run_gbq_query
+
+        query = "SELECT * from `places-clickstream`.9317736.ga_sessions_20200728 LIMIT 5"
+        df = run_gbq_query(query, project_id='places-clickstream')
+        ```
         2. Salesforce - Runs against data stored in the Salesforce Object Manager.
-            * NOTE: Salesforce uses SOQL, which has different syntax than the lake.
+        NOTE: Salesforce uses SOQL, which has different syntax than the lake.
+        ```
+        from honeycomb.salesforce import run_sf_query, sf_select_star
+
+        query = "SELECT Id FROM Lead LIMIT 5"
+        df = run_sf_query(query)
+
+        df_star = sf_select_star(object_name='Lead',
+                                    where_clause='WHERE CreatedDate <= 2020-08-01T00:00-00:00',
+                                    limit_clause='LIMIT 5')
+        ```
 
 ### Running Queries
 The `run_lake_query` function allows for running queries through either the
@@ -42,13 +57,10 @@ The `run_lake_query` function allows for running queries through either the
 import honeycomb as hc
 
 df0 = hc.run_lake_query('SELECT COUNT(*) FROM experimental.test_table',
-                   engine='presto')
+                        engine='presto')
 
 df1 = hc.run_lake_query('SELECT COUNT(*) FROM experimental.test_table',
-                   engine='hive')
-
-df2 = hc.run_lake_query('SELECT COUNT(*) FROM `places-clickstream`.12345678.20200501',
-                   engine='gbq', project_id='places-clickstream')
+                        engine='hive')
 ```
 
 ### Table Creation
