@@ -197,7 +197,6 @@ def handle_complex_col(col, storage_type):
 
 
 def reduce_complex_type(col):
-    print(col)
     python_types = col.apply(type)
     if all(python_types.isin([str, type(None)])):
         return 'string'
@@ -220,10 +219,9 @@ def handle_array_col(col, storage_type):
     array_series = pd.Series()
     for array in col:
         array_series = array_series.append(pd.Series(array))
-    print(col)
-    print(array_series)
     array_dtype = dtype_map[array_series.dtype.name]
     if array_dtype == 'COMPLEX':
+        print('yo')
 
         reduced_type = reduce_complex_type(array_series)
         if reduced_type == 'string':
@@ -231,9 +229,15 @@ def handle_array_col(col, storage_type):
         elif reduced_type == 'list':
             pass
         elif reduced_type == 'dict':
-            pass
+            struct_list = []
+            for row in col:
+                for dict in row:
+                    struct_list.append(dict)
+            col, struct_dtype = handle_struct_col(
+                pd.Series(struct_list), storage_type)
+            array_dtype = struct_dtype
     if storage_type == 'csv':
-        col = col.apply(lambda x: '|'.join([y for y in x]))
+        col = col.apply(lambda x: '|'.join([str(y) for y in x]))
 
     dtype_str += array_dtype + '>'
     return col, dtype_str
@@ -245,6 +249,8 @@ def handle_struct_col(col, storage_type):
     for struct in col:
         struct_df = struct_df.append(
             pd.DataFrame.from_records([struct]))
+    print('struct_df')
+    print(struct_df)
     struct_dtypes = map_pd_to_db_dtypes(struct_df, storage_type)
     dtype_str += ', '.join(
         ['{}: {}'.format(col_name, col_type)
@@ -252,6 +258,10 @@ def handle_struct_col(col, storage_type):
 
     dtype_str += '>'
     if storage_type == 'csv':
+        print('before')
+        print(col)
         col = col.apply(lambda x:
                         str(list(x.values()))[1:-1].replace(', ', '|'))
+        print('after')
+        print(col)
     return col, dtype_str

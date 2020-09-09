@@ -282,8 +282,9 @@ def __nuke_table(table_name, schema):
     current_path = table_metadata['path']
     hive.run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
         schema,
-        table_name
-    ))
+        table_name),
+        engine='hive'
+    )
     rm_command = 'aws s3 rm --recursive s3://{}/{}'.format(
         current_bucket,
         current_path
