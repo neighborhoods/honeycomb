@@ -48,7 +48,7 @@ dtypes = {
 }
 
 
-def validate_dtypes(dtypes_to_test=None):
+def validate_dtypes(dtypes_to_test=None, storage_format='json'):
     if dtypes_to_test is None:
         dtypes_to_test == dtypes.keys()
     if isinstance(dtypes_to_test, str):
@@ -60,7 +60,8 @@ def validate_dtypes(dtypes_to_test=None):
         table_name = dtype
         df = dtypes[dtype]
 
-        hc.create_table_from_df(df, table_name, filename='test.csv',
+        hc.create_table_from_df(df, table_name,
+                                filename='test.{}'.format(storage_format),
                                 overwrite=True)
         print(hc.run_lake_query(
             'SELECT * FROM experimental.{}'.format(table_name), engine='hive'))

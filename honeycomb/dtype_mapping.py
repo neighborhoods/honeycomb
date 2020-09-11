@@ -170,33 +170,33 @@ def map_pd_to_db_dtypes(df, storage_type):
 
 
 def handle_complex_dtypes(df_complex, db_dtypes, storage_type):
+    """
+    """
     for col in df_complex.columns:
         df_complex.loc[:, col], db_dtypes.loc[col] = handle_complex_col(
             df_complex[col], storage_type)
 
-    if any(db_dtypes.str.contains('ARRAY')):
-        if storage_type == 'csv':
-            if any(db_dtypes.str.count('ARRAY') > 1):
-                raise TypeError('Nested arrays are not currently supported in '
-                                'the CSV storage format.')
+    df_complex = storage_type_post_processing(
+        df_complex, db_dtypes, storage_type)
     return df_complex, db_dtypes
 
 
 def handle_complex_col(col, storage_type):
+    """
+    """
     reduced_type = reduce_complex_type(col)
 
     if reduced_type == 'string':
         return col, 'STRING'
     elif reduced_type == 'list':
-        if storage_type != 'csv':
-            raise TypeError(
-                'The "array" type is currently only supported with CSVs.')
         return handle_array_col(col, storage_type)
     elif reduced_type == 'dict':
         return handle_struct_col(col, storage_type)
 
 
 def reduce_complex_type(col):
+    """
+    """
     python_types = col.apply(type)
     if all(python_types.isin([str, type(None)])):
         return 'string'
@@ -214,54 +214,90 @@ def reduce_complex_type(col):
 
 
 def handle_array_col(col, storage_type):
+    """
+    """
     dtype_str = 'ARRAY <'
-
     array_series = pd.Series()
     for array in col:
         array_series = array_series.append(pd.Series(array))
     array_dtype = dtype_map[array_series.dtype.name]
     if array_dtype == 'COMPLEX':
-        print('yo')
-
         reduced_type = reduce_complex_type(array_series)
         if reduced_type == 'string':
             array_dtype = 'STRING'
+
         elif reduced_type == 'list':
-            pass
+            array_list = []
+            for row in col:
+                for list in row:
+                    array_list.append(list)
+            _, array_dtype = handle_array_col(
+                pd.Series(array_list), storage_type)
+
         elif reduced_type == 'dict':
             struct_list = []
             for row in col:
                 for dict in row:
                     struct_list.append(dict)
-            col, struct_dtype = handle_struct_col(
+            _, array_dtype = handle_struct_col(
                 pd.Series(struct_list), storage_type)
-            array_dtype = struct_dtype
-    if storage_type == 'csv':
-        col = col.apply(lambda x: '|'.join([str(y) for y in x]))
 
     dtype_str += array_dtype + '>'
     return col, dtype_str
 
 
 def handle_struct_col(col, storage_type):
+    """
+    """
     dtype_str = 'STRUCT <'
     struct_df = pd.DataFrame()
     for struct in col:
         struct_df = struct_df.append(
             pd.DataFrame.from_records([struct]))
-    print('struct_df')
-    print(struct_df)
     struct_dtypes = map_pd_to_db_dtypes(struct_df, storage_type)
     dtype_str += ', '.join(
         ['{}: {}'.format(col_name, col_type)
          for col_name, col_type in struct_dtypes.items()])
 
     dtype_str += '>'
-    if storage_type == 'csv':
-        print('before')
-        print(col)
-        col = col.apply(lambda x:
-                        str(list(x.values()))[1:-1].replace(', ', '|'))
-        print('after')
-        print(col)
+
     return col, dtype_str
+
+
+def storage_type_post_processing(df_complex, db_dtypes, storage_type):
+    """
+    """
+    if any(db_dtypes.str.contains('ARRAY|STRUCT')):
+        if storage_type == 'avro':
+            raise TypeError('Complex types are not yet supported in '
+                            'the Avro storage format.')
+        if storage_type == 'csv':
+            array_count = db_dtypes.str.count('ARRAY')
+            struct_count = db_dtypes.str.count('STRUCT')
+            if any(array_count + struct_count) > 1:
+                raise TypeError('Nested lists/dicts are not currently '
+                                'supported in the CSV storage format.')
+
+            array_columns = db_dtypes[db_dtypes.str.contains('ARRAY')].index
+            df_complex.loc[:, array_columns] = (
+                df_complex.loc[:, array_columns].apply(
+                    lambda x: x.apply(
+                        lambda y: '|'.join([str(z) for z in y])
+                    )
+                )
+            )
+
+            struct_columns = db_dtypes[db_dtypes.str.contains('STRUCT')].index
+            df_complex.loc[:, struct_columns] = (
+                df_complex.loc[:, struct_columns].apply(
+                    lambda x: x.apply(
+                        lambda y: str(list(y.values()))[1:-1].replace(
+                            ', ', '|')
+                    )
+                )
+            )
+        if storage_type == 'pq':
+            if any(db_dtypes.str.contains('ARRAY')):
+                raise TypeError('Lists are not currently supported in the '
+                                'Parquet storage format.')
+    return df_complex
