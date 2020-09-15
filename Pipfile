@@ -18,7 +18,7 @@ wheel = "==0.34.2"
 [packages]
 pandas = "==1.0.1"
 pyhive = {extras = ["hive", "presto"], version = "==0.6.1"}
-river = {version="==1.0", index="nhds"}
+river = {version="==1.1.1", index="nhds"}
 simple-salesforce = ">=1.1.0"
 
 [requires]

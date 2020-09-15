@@ -14,12 +14,16 @@ storage_type_specs = {
             'index': False,
             'header': False
         },
-        'ddl': """
-               ROW FORMAT DELIMITED
-               FIELDS TERMINATED BY ','
-               COLLECTION ITEMS TERMINATED BY '|'
-               LINES TERMINATED BY '\\n'
-               """
+        'ddl': ("ROW FORMAT DELIMITED\n"
+                "FIELDS TERMINATED BY ','\n"
+                "COLLECTION ITEMS TERMINATED BY '|'\n"
+                "LINES TERMINATED BY '\\n'")
+    },
+    'json': {
+        'settings': {'hive_format': True},
+        'ddl': ("ROW FORMAT SERDE\n"
+                "'org.apache.hadoop.hive.serde2.JsonSerDe'\n"
+                "STORED AS TEXTFILE")
     },
     'pq': {
         'settings': {

@@ -140,15 +140,25 @@ def apply_spec_dtypes(df, spec_dtypes):
     return df
 
 
-def map_pd_to_db_dtypes(df, storage_type):
+def map_pd_to_db_dtypes(df, storage_type=None):
     """
     Creates a mapping from the dtypes in a DataFrame to their corresponding
     dtypes in Hive
 
     Args:
         df (pd.DataFrame): The DataFrame to pull dtypes from
+        storage_type (string): The format the DataFrame is to be saved as
     Returns:
-        db_dtypes (dict<str:str>): A dict from column names to database dtypes
+        db_dtypes (pd.Series): A Series mapping column names to database dtypes
+    Raises:
+        TypeError: If the DataFrame contains a column of type 'category'
+        TypeError: If the DataFrame contains a column of type 'timedelta64[ns]'
+        TypeError:
+            If the DataFrame contains a column that translates to a complex
+            Hive type, and is being saved as Avro or CSV
+        TypeError:
+            If the DataFrame contains a column that translates to an ARRAY
+            Hive type, and is being saved as Parquet
     """
     if any(df.dtypes == 'category'):
         raise TypeError('Pandas\' \'categorical\' type is not supported. '
@@ -164,77 +174,134 @@ def map_pd_to_db_dtypes(df, storage_type):
 
     if any(db_dtypes.eq('COMPLEX')):
         complex_cols = db_dtypes.index[db_dtypes.eq('COMPLEX')]
-        df[complex_cols], db_dtypes = handle_complex_dtypes(
-            df[complex_cols], db_dtypes, storage_type)
+        db_dtypes = handle_complex_dtypes(
+            df[complex_cols], db_dtypes)
+
+        if any(db_dtypes.str.contains('ARRAY|STRUCT')):
+            if storage_type in ['avro', 'csv']:
+                raise TypeError('Complex types are not yet supported in '
+                                'the {} storage format.'.format(storage_type))
+
+            if storage_type == 'pq':
+                if any(db_dtypes.str.contains('ARRAY')):
+                    raise TypeError('Lists are not currently supported in the '
+                                    'Parquet storage format.')
     return db_dtypes
 
 
-def handle_complex_dtypes(df_complex_cols, db_dtypes, storage_type):
-    for col in df_complex_cols.columns:
-        df_complex_cols[col], db_dtypes[col] = handle_complex_col(
-            df_complex_cols[col], storage_type)
+def handle_complex_dtypes(df_complex, db_dtypes):
+    """
+    Generates the DDL for columns with complex dtypes if they are found in
+    a DataFrame that a table is being created from
 
-    if any(db_dtypes.str.contains('ARRAY')):
-        if storage_type == 'csv':
-            if any(db_dtypes.str.count('ARRAY') > 1):
-                raise TypeError('Nested arrays are not currently supported in '
-                                'the CSV storage format.')
-    return df_complex_cols, db_dtypes
+    Args:
+        df_complex (pd.DataFrame):
+           DataFrame containing all the complex columns of the DataFrame that
+           the new table is being generated from.
+        db_dtypes (pd.Series): A Series mapping column names to database dtypes
+    Returns:
+        db_dtypes (pd.Series): A Series mapping column names to database dtypes
+    """
+    for col in df_complex.columns:
+        reduced_type = reduce_complex_type(df_complex[col])
+        if reduced_type == 'string':
+            db_dtypes.loc[col] = col, 'STRING'
+        elif reduced_type == 'list':
+            db_dtypes.loc[col] = handle_array_col(df_complex[col])
+        elif reduced_type == 'dict':
+            db_dtypes.loc[col] = handle_struct_col(df_complex[col])
+
+    return db_dtypes
 
 
-def handle_complex_col(col, storage_type):
+def reduce_complex_type(col):
+    """
+    Reduces the dtype of a complex column to a type usable in base Python
+
+    Args:
+        col (pd.Series): A column with a complex dtype
+    Returns:
+        string: The reduced dtype of col
+    Raises:
+        TypeError: If the column is of a mixed or unsupported type
+    """
     python_types = col.apply(type)
-    if all(python_types.isin([type(None)])):
-        return col, 'STRING'
-    elif all(python_types.isin([str, type(None)])):
-        return col, 'STRING'
+    if all(python_types.isin([str, type(None)])):
+        return 'string'
     elif all(python_types.isin([list, type(None)])):
-        return handle_array_col(col, storage_type)
+        return 'list'
     elif all(python_types.isin([dict, type(None)])):
-        return handle_struct_col(col, storage_type)
+        return 'dict'
     else:
         raise TypeError(
             'Values passed to complex column "{}" are either of '
             'unsupported types of mixed types. Currently supported '
-            'complex types are "STRING" and "STRUCT" (dictionary). '
-            'Columns must contain homogenous types.')
+            'complex types are "STRING", "ARRAY" (list) and '
+            '"STRUCT" (dictionary). Columns must contain '
+            'homogenous types.'.format(col.name))
 
 
-def handle_array_col(col, storage_type):
+def handle_array_col(col):
+    """
+    Generates the DDL for a column of type ARRAY
+    Can also be used to generate DDL for nested fields, such as for
+    arrays contained within structs.
+
+    Args:
+        col (pd.Series): A column of the ARRAY dtype
+    Returns:
+        dtype_str (string): Hive DDL for the column
+    """
     dtype_str = 'ARRAY <'
-
     array_series = pd.Series()
     for array in col:
         array_series = array_series.append(pd.Series(array))
     array_dtype = dtype_map[array_series.dtype.name]
     if array_dtype == 'COMPLEX':
-        array_dtype = handle_complex_col(col, storage_type)
+        reduced_type = reduce_complex_type(array_series)
+        if reduced_type == 'string':
+            array_dtype = 'STRING'
+
+        elif reduced_type == 'list':
+            array_list = []
+            for row in col:
+                for list in row:
+                    array_list.append(list)
+            array_dtype = handle_array_col(
+                pd.Series(array_list))
+
+        elif reduced_type == 'dict':
+            struct_list = []
+            for row in col:
+                for dict in row:
+                    struct_list.append(dict)
+            array_dtype = handle_struct_col(pd.Series(struct_list))
 
     dtype_str += array_dtype + '>'
-
-    if storage_type == 'csv':
-        col = col.apply(lambda x: str(x)[1:-1].replace(', ', '|'))
-    else:
-        raise TypeError(
-            'Honeycomb currently only supports array columns '
-            'when storing as CSV.')
-
-    return col, dtype_str
+    return dtype_str
 
 
-def handle_struct_col(col, storage_type):
+def handle_struct_col(col):
+    """
+    Generates the DDL for a column of type STRUCT
+    Can also be used to generate DDL for nested fields, such as for
+    structs contained within structs.
+
+    Args:
+        col (pd.Series): A column of the STRUCT dtype
+    Returns:
+        dtype_str (string): Hive DDL for the column
+    """
     dtype_str = 'STRUCT <'
     struct_df = pd.DataFrame()
     for struct in col:
         struct_df = struct_df.append(
             pd.DataFrame.from_records([struct]))
-    struct_dtypes = map_pd_to_db_dtypes(struct_df, storage_type)
+    struct_dtypes = map_pd_to_db_dtypes(struct_df)
     dtype_str += ', '.join(
         ['{}: {}'.format(col_name, col_type)
          for col_name, col_type in struct_dtypes.items()])
 
     dtype_str += '>'
-    if storage_type == 'csv':
-        col = col.apply(lambda x:
-                        str(list(x.values()))[1:-1].replace(', ', '|'))
-    return col, dtype_str
+
+    return dtype_str

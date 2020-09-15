@@ -71,7 +71,7 @@ setup(
     install_requires=[
         'pandas>=1.0.0',
         'pyhive[hive, presto]>=0.6.1',
-        'river>=1.0'  # Must configure NHDS PyPi as an external url for pip
+        'river>=1.1.1'  # Must configure NHDS PyPi as an external url for pip
     ],
     extras_requre={
         'salesforce': ['simple-salesforce>=1.1.0']
