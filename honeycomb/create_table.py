@@ -178,8 +178,8 @@ def create_table_from_df(df, table_name, schema=None,
         partitioned_by (dict<str:str>,
                     collections.OrderedDict<str:str>, or
                     list<tuple<str:str>>, optional):
-            List of tuples containing a partition name and type. Cannot be a
-            vanilla dictionary if using Python version < 3.6
+            Dictionary or list of tuples containing a partition name and type.
+            Cannot be a vanilla dictionary if using Python version < 3.6
         partition_values (dict<str:str>):
             Required if 'partitioned_by' is used and 'auto_upload_df' is True.
             List of tuples containing partition name and value to store

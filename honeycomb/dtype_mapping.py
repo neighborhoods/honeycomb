@@ -205,7 +205,11 @@ def handle_complex_dtypes(df_complex, db_dtypes):
     for col in df_complex.columns:
         reduced_type = reduce_complex_type(df_complex[col])
         if reduced_type == 'string':
-            db_dtypes.loc[col] = col, 'STRING'
+            db_dtypes.loc[col] = 'STRING'
+        elif reduced_type == 'numeric':
+            db_dtypes.loc[col] = dtype_map['float64']
+        elif reduced_type == 'bool':
+            db_dtypes.loc[col] = dtype_map['bool']
         elif reduced_type == 'list':
             db_dtypes.loc[col] = handle_array_col(df_complex[col])
         elif reduced_type == 'dict':
@@ -232,6 +236,10 @@ def reduce_complex_type(col):
         return 'list'
     elif all(python_types.isin([dict, type(None)])):
         return 'dict'
+    elif all(python_types.isin([int, float, type(None)])):
+        return 'numeric'
+    elif all(python_types.isin([bool, type(None)])):
+        return 'bool'
     else:
         raise TypeError(
             'Values passed to complex column "{}" are either of '
@@ -266,15 +274,16 @@ def handle_array_col(col):
             array_list = []
             for row in col:
                 for list in row:
-                    array_list.append(list)
-            array_dtype = handle_array_col(
-                pd.Series(array_list))
+                    if list is not None:
+                        array_list.append(list)
+            array_dtype = handle_array_col(pd.Series(array_list))
 
         elif reduced_type == 'dict':
             struct_list = []
             for row in col:
                 for dict in row:
-                    struct_list.append(dict)
+                    if dict is not None:
+                        struct_list.append(dict)
             array_dtype = handle_struct_col(pd.Series(struct_list))
 
     dtype_str += array_dtype + '>'
@@ -295,12 +304,11 @@ def handle_struct_col(col):
     dtype_str = 'STRUCT <'
     struct_df = pd.DataFrame()
     for struct in col:
-        struct_df = struct_df.append(
-            pd.DataFrame.from_records([struct]))
+        if struct is not None:
+            struct_df = struct_df.append(pd.DataFrame.from_records([struct]))
     struct_dtypes = map_pd_to_db_dtypes(struct_df)
-    dtype_str += ', '.join(
-        ['{}: {}'.format(col_name, col_type)
-         for col_name, col_type in struct_dtypes.items()])
+    dtype_str += ', '.join(['{}: {}'.format(col_name, col_type)
+                            for col_name, col_type in struct_dtypes.items()])
 
     dtype_str += '>'
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0] - 2020-09-17
+
 ### Added
 - Table appending logic
 - Functionality to create a table with both table and column comments
@@ -30,7 +32,7 @@ or have a timezone value provided for `honeycomb` to use to make them timezone-a
 - Support for `STRUCT` data type
 - Support for `ARRAY` data type
 - Module for Salesforce querying
-- Support for creating tables stored as JSON
+- Support for creating tables stored as JSON, allowing for nested fields
 
 ### Changed
 - Renamed `append_df` to `append_df_to_table` for more explicit language
