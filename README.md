@@ -72,6 +72,11 @@ it defaults to writing to the 'experimental' zone.
 on the extension of the provided `filename`. If `filename` is not provided or
 does not contain an extension, it will default to Parquet.
 
+NOTE: If your dataframe contains a high degree of nesting, generating
+DDL for its table can be very time-consuming. It may be faster to generate the
+table with a subset of the dataframe's rows, and append the remaining rows
+after the fact.
+
 An empty directory is expected for a table's underlying storage.
 If files are already present in the S3 path designated to store files
 for the new table, table creation will fail.
@@ -96,9 +101,28 @@ but with any other zone it is required.
 6. `column_comments`: A dictionary from column names to a plaintext description
 of what the column contains. This is optional when writing to the experimental zone,
 but with any other zone it is required.
-7. `overwrite`: In the case of a table already existing with the specified
+7. `timezones`: A dictionary from datetime columns to the timezone they
+represent. If the column is timezone-naive, it will have the
+timezone added to its metadata, leaving the times themselves
+unmodified. If the column is timezone-aware and is in a different
+timezone than the one that is specified, the column's timezone
+will be converted, modifying the original times.
+8. `copy_df`: Whether the operations performed on df should be performed on the
+original or a copy. Keep in mind that if this is set to False,
+the original df passed in will be modified as well - twice as
+memory efficient, but may be undesirable if the df is needed
+again later
+9. `partitioned_by`: Dictionary or list of tuples containing a partition name
+and type. Cannot be a vanilla dictionary if using Python version < 3.6
+10. `partition_values`: Required if 'partitioned_by' is used and
+'auto_upload_df' is True. List of tuples containing partition name and
+value to store the dataframe under
+11. `overwrite`: In the case of a table already existing with the specified
 name, states whether to drop a table and completely remove its underlying files
 or throw errors. In any other case, this parameter does nothing.
+12. `auto_upload_df`: Whether the df that the table's structure will be based
+off of should be automatically uploaded to the table, or just used to generate
+and execute the DDL.
 ```
 import pandas as pd
 import honeycomb as hc
