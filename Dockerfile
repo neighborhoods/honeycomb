@@ -8,7 +8,6 @@ COPY . .
 
 RUN pip install pipenv
 
-ENV USER_ENCODED=$(python a.py $NHDS_PYPI_USERNAME)
-ENV PASS_ENCODED=$(python a.py $NHDS_PYPI_PASSWORD)
-
-RUN pipenv install --dev --system --ignore-pipfile
+RUN export USER_ENCODED=$(python a.py $NHDS_PYPI_USERNAME) && \
+    export PASS_ENCODED=$(python a.py $NHDS_PYPI_PASSWORD) && \
+    pipenv install --dev --system --ignore-pipfile
