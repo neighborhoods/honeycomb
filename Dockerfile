@@ -4,10 +4,7 @@ WORKDIR /usr/src/app
 ARG NHDS_PYPI_USERNAME
 ARG NHDS_PYPI_PASSWORD
 
-ARG test_username=$NHDS_PYPI_USERNAME
-
-RUN echo 'hello'
-RUN echo $test_username
+RUN python a.py
 
 COPY . .
 RUN pip install pipenv
