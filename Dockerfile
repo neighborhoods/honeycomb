@@ -6,6 +6,7 @@ ARG NHDS_PYPI_PASSWORD
 
 ARG test_username=$NHDS_PYPI_USERNAME
 
+RUN echo 'hello'
 RUN echo $test_username
 
 COPY . .
