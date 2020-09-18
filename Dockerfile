@@ -6,4 +6,4 @@ ARG NHDS_PYPI_PASSWORD
 
 COPY . .
 RUN pip install pipenv
-RUN pipenv install --dev --system --deploy
+RUN pipenv install --dev --system --ignore-pipfile
