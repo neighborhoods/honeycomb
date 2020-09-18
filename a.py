@@ -1,4 +1,4 @@
-import os
+from urllib.parse import quote
+import sys
 
-print(os.getenv('NHDS_PYPI_USERNAME'))
-print(os.path.expandvars('$NHDS_PYPI_USERNAME'))
+print(quote(sys.argv[1], safe=''))
