@@ -80,11 +80,11 @@ def sf_select_star(object_name, where_clause=None, limit_clause=None, sf=None):
     """
     if sf is None:
         sf = get_salesforce_conn()
-    field_names = sf_get_column_names(sf, object_name)
+    field_names = sf_get_column_names(object_name, sf)
 
     soql = 'SELECT\n    {}\nFROM {}'.format(',\n    '.join(field_names),
                                             object_name)
     soql = '\n'.join(filter(None, [soql, where_clause, limit_clause]))
     print(soql)
 
-    return run_sf_query(sf, soql)
+    return run_sf_query(soql, sf)
