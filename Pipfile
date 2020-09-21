@@ -5,11 +5,13 @@ verify_ssl = true
 
 [[source]]
 name = "nhds"
-url = "https://$USER_ENCODED:${PASS_ENCODED}@pypi.neighborhoods.com/simple"
+url = "https://$NHDS_PYPI_USERNAME:${NHDS_PYPI_PASSWORD}@pypi.neighborhoods.com/simple"
 verify_ssl = true
 
 [dev-packages]
 flake8 = "==3.7.9"
+moto = "1.3.14"
+pipenv-devcheck = "==0.2.5"
 pytest = "==5.3.5"
 pytest-mock = "==2.0.0"
 twine = "==3.2.0"
