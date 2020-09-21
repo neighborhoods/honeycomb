@@ -6,6 +6,7 @@ ARG NHDS_PYPI_PASSWORD
 
 COPY . .
 
+RUN apt-get update; apt-get install -y build-essential curl unzip python-dev libsasl2-dev gcc
 RUN pip install pipenv
 
 RUN export USER_ENCODED=$(python a.py $NHDS_PYPI_USERNAME) && \
