@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2020-09-21
+
+### Added
+- NHDS standard CI pipeline
+
+### Changed
+- Columns containing OrderedDicts are now also recognized as `STRUCT` columns
+- Fixed Salesforce module imports/function signatures
+
 ## [1.0] - 2020-09-17
 
 ### Added

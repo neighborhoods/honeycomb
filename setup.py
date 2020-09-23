@@ -73,7 +73,7 @@ setup(
         'pyhive[hive, presto]>=0.6.1',
         'river>=1.1.1'  # Must configure NHDS PyPi as an external url for pip
     ],
-    extras_requre={
+    extras_require={
         'salesforce': ['simple-salesforce>=1.1.0']
     },
     cmdclass={

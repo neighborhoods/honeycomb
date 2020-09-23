@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import logging
 
 import pandas as pd
@@ -234,7 +235,7 @@ def reduce_complex_type(col):
         return 'string'
     elif all(python_types.isin([list, type(None)])):
         return 'list'
-    elif all(python_types.isin([dict, type(None)])):
+    elif all(python_types.isin([dict, OrderedDict, type(None)])):
         return 'dict'
     elif all(python_types.isin([int, float, type(None)])):
         return 'numeric'
