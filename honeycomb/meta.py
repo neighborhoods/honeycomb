@@ -157,7 +157,7 @@ def get_table_storage_type_from_metadata(table_metadata):
     """
     hive_input_format_to_storage_type = {
         'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat': 'avro',
-        'org.apache.hadoop.mapred.TextInputFormat': 'csv',
+        'org.apache.hadoop.mapred.TextInputFormat': 'text',
         'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat': 'pq'
     }
     format_label_idx = table_metadata.index[
@@ -166,4 +166,16 @@ def get_table_storage_type_from_metadata(table_metadata):
     input_format = table_metadata.loc[
         format_label_idx + 1, 'createtab_stmt'].strip()[1:-1]
 
-    return hive_input_format_to_storage_type[input_format]
+    storage_format = hive_input_format_to_storage_type[input_format]
+    if storage_format == 'text':
+        serde_label_idx = table_metadata.index[
+            table_metadata['createtab_stmt'].str.strip() ==
+            "ROW FORMAT SERDE"].values[0]
+        serde_type = table_metadata.loc[
+            serde_label_idx + 1, 'createtab_stmt'].strip()[1:-1]
+        if serde_type == 'org.apache.hadoop.hive.serde2.JsonSerDe':
+            storage_format = 'json'
+        else:
+            storage_format = 'csv'
+
+    return storage_format

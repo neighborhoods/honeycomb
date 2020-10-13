@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 
+import pandavro as pdx
 import river as rv
 
 from honeycomb import check, dtype_mapping, hive, meta
@@ -33,13 +34,14 @@ def add_comments_to_col_defs(col_defs, comments):
 
 def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
-                           partitioned_by, full_path):
+                           partitioned_by, full_path,
+                           tblproperties=None):
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
     {columns_and_types}
 ){table_comment}{partitioned_by}
 {storage_format_ddl}
-LOCATION 's3://{full_path}'
+LOCATION 's3://{full_path}'{tblproperties}
     """.format(
         schema=schema,
         table_name=table_name,
@@ -54,7 +56,11 @@ LOCATION 's3://{full_path}'
              for partition_name, partition_type in partitioned_by.items()]))
             if partitioned_by else ''),
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
-        full_path=full_path.rsplit('/', 1)[0] + '/'
+        full_path=full_path.rsplit('/', 1)[0] + '/',
+        tblproperties=('\nTBLPROPERTIES (\n  {}\n)'.format('\n  '.join([
+            '\'{}\'=\'{}\''.format(prop_name, prop_val)
+            for prop_name, prop_val in tblproperties.items()]))
+            if tblproperties else '')
     )
 
     return create_table_ddl
@@ -251,10 +257,15 @@ def create_table_from_df(df, table_name, schema=None,
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
 
+    tblproperties = {}
+    if storage_type == 'avro':
+        tblproperties['avro.schema.literal'] = str(
+            pdx.schema_infer(df)).replace('\'', '"')
+
     create_table_ddl = build_create_table_ddl(table_name, schema,
                                               col_defs, table_comment,
                                               storage_type, partitioned_by,
-                                              full_path)
+                                              full_path, tblproperties)
     print(create_table_ddl)
     hive.run_lake_query(create_table_ddl, engine='hive')
 

@@ -179,7 +179,7 @@ def map_pd_to_db_dtypes(df, storage_type=None):
             df[complex_cols], db_dtypes)
 
         if any(db_dtypes.str.contains('ARRAY|STRUCT')):
-            if storage_type in ['avro', 'csv']:
+            if storage_type in ['csv']:
                 raise TypeError('Complex types are not yet supported in '
                                 'the {} storage format.'.format(storage_type))
 
@@ -261,10 +261,7 @@ def handle_array_col(col):
     Returns:
         dtype_str (string): Hive DDL for the column
     """
-    dtype_str = 'ARRAY <'
-    array_series = pd.Series()
-    for array in col:
-        array_series = array_series.append(pd.Series(array))
+    array_series = col[~col.isna()].sum()
     array_dtype = dtype_map[array_series.dtype.name]
     if array_dtype == 'COMPLEX':
         reduced_type = reduce_complex_type(array_series)
@@ -272,22 +269,12 @@ def handle_array_col(col):
             array_dtype = 'STRING'
 
         elif reduced_type == 'list':
-            array_list = []
-            for row in col:
-                for list in row:
-                    if list is not None:
-                        array_list.append(list)
-            array_dtype = handle_array_col(pd.Series(array_list))
+            array_dtype = handle_array_col(array_series)
 
         elif reduced_type == 'dict':
-            struct_list = []
-            for row in col:
-                for dict in row:
-                    if dict is not None:
-                        struct_list.append(dict)
-            array_dtype = handle_struct_col(pd.Series(struct_list))
+            array_dtype = handle_struct_col(array_series)
 
-    dtype_str += array_dtype + '>'
+    dtype_str = 'ARRAY <{}>'.format(array_dtype)
     return dtype_str
 
 
@@ -302,15 +289,12 @@ def handle_struct_col(col):
     Returns:
         dtype_str (string): Hive DDL for the column
     """
-    dtype_str = 'STRUCT <'
-    struct_df = pd.DataFrame()
-    for struct in col:
-        if struct is not None:
-            struct_df = struct_df.append(pd.DataFrame.from_records([struct]))
+    struct_df = pd.DataFrame.from_records(
+        col[~col.isna()].reset_index(drop=True))
     struct_dtypes = map_pd_to_db_dtypes(struct_df)
-    dtype_str += ', '.join(['{}: {}'.format(col_name, col_type)
-                            for col_name, col_type in struct_dtypes.items()])
 
-    dtype_str += '>'
+    dtype_str = 'STRUCT <{}>'.format(
+        ', '.join(['{}: {}'.format(col_name, col_type)
+                   for col_name, col_type in struct_dtypes.items()]))
 
     return dtype_str

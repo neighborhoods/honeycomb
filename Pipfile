@@ -22,6 +22,7 @@ pandas = "==1.0.1"
 pyhive = {extras = ["hive", "presto"], version = "==0.6.1"}
 river = {version="==1.1.1", index="nhds"}
 simple-salesforce = ">=1.1.0"
+pandavro = {editable = true, path = "/Users/george/dev/pandavro"}
 
 [requires]
 python_version = "3.7"

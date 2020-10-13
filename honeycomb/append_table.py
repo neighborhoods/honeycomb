@@ -116,6 +116,7 @@ def reorder_columns_for_appending(df, table_name, schema,
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
+    df.columns = df.columns.str.lower()
     table_col_order = meta.get_table_column_order(table_name, schema)
     if sorted(table_col_order) == sorted(df.columns):
         return df[table_col_order]
