@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import os
+import re
 import subprocess
 import sys
 
@@ -36,6 +37,20 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
+
+    reserved_words = ['date', 'time', 'timestamp', 'datetime']
+    columns_and_types = (
+        col_defs
+        .to_frame()
+        .to_string(header=False)
+        .replace('\n', ',\n    ')
+    )
+    columns_and_types = re.sub(
+        r'(?<=\s|,)({})(?=\:| )'.format('|'.join(reserved_words)),
+        lambda x: '`{}`'.format(x[0]),
+        columns_and_types
+    )
+
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
     {columns_and_types}
@@ -47,8 +62,7 @@ LOCATION 's3://{full_path}'{tblproperties}
         table_name=table_name,
         # BUG: pd.Series truncates long strings output by to_string,
         # have to cast to DataFrame first.
-        columns_and_types=col_defs.to_frame().to_string(
-            header=False).replace('\n', ',\n    '),
+        columns_and_types=columns_and_types,
         table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
         partitioned_by=('\nPARTITIONED BY ({})'.format(', '.join(
@@ -182,8 +196,8 @@ def create_table_from_df(df, table_name, schema=None,
             memory efficient, but may be undesirable if the df is needed
             again later
         partitioned_by (dict<str:str>,
-                    collections.OrderedDict<str:str>, or
-                    list<tuple<str:str>>, optional):
+                        collections.OrderedDict<str:str>, or
+                        list<tuple<str:str>>, optional):
             Dictionary or list of tuples containing a partition name and type.
             Cannot be a vanilla dictionary if using Python version < 3.6
         partition_values (dict<str:str>):
@@ -197,6 +211,9 @@ def create_table_from_df(df, table_name, schema=None,
             Whether the df that the table's structure will be based off of
             should be automatically uploaded to the table
     """
+    if copy_df:
+        df = df.copy()
+
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
     if partitioned_by:
@@ -248,9 +265,11 @@ def create_table_from_df(df, table_name, schema=None,
             'attempting table creation.').format(bucket, path))
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
+    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
+
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
 

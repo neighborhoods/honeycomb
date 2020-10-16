@@ -82,12 +82,6 @@ def special_dtype_handling(df, spec_dtypes, spec_timezones,
             spec_dtypes (dict<str:np.dtype or str>):
                 a dict from column names to dtypes
             schema (str): The schema of the table the df is being uploaded to
-            copy_df (bool):
-                Whether the operations should be performed on the original df
-                or a copy. Keep in mind that if this is set to False,
-                the original df passed in will be modified as well - twice as
-                memory efficient, but may be undesirable if the df is needed
-                again later
         For datetimes:
             spec_timezones (dict<str, str>):
                 Dictionary from datetime columns to the timezone they
@@ -97,9 +91,6 @@ def special_dtype_handling(df, spec_dtypes, spec_timezones,
                 will be converted, likely modifying the stored times.
 
     """
-    if copy_df:
-        df = df.copy()
-
     df = apply_spec_dtypes(df, spec_dtypes)
 
     # All datetime columns, regardless of timezone naive/aware
@@ -261,7 +252,7 @@ def handle_array_col(col):
     Returns:
         dtype_str (string): Hive DDL for the column
     """
-    array_series = col[~col.isna()].sum()
+    array_series = pd.Series(col[~col.isna()].sum())
     array_dtype = dtype_map[array_series.dtype.name]
     if array_dtype == 'COMPLEX':
         reduced_type = reduce_complex_type(array_series)

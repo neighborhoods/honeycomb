@@ -45,6 +45,9 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
+    if copy_df:
+        df = df.copy()
+
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
     table_exists = check.table_existence(table_name, schema)
@@ -75,6 +78,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')
 
+    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
         df, spec_dtypes=dtypes, spec_timezones=timezones,
         schema=schema, copy_df=copy_df)
@@ -116,7 +120,6 @@ def reorder_columns_for_appending(df, table_name, schema,
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
-    df.columns = df.columns.str.lower()
     table_col_order = meta.get_table_column_order(table_name, schema)
     if sorted(table_col_order) == sorted(df.columns):
         return df[table_col_order]
