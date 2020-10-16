@@ -8,6 +8,6 @@ COPY . .
 
 RUN apt-get update; apt-get install -y libsasl2-dev
 
-RUN pip install pipenv cython
+RUN pip install pipenv
 
 RUN pipenv install --dev --system --deploy
