@@ -22,7 +22,6 @@ pandas = "==1.0.1"
 pyhive = {extras = ["hive", "presto"], version = "==0.6.1"}
 river = {version="==1.1.1", index="nhds"}
 simple-salesforce = ">=1.1.0"
-# pandavro = {git = "https://github.com/Geoiv/pandavro.git", editable = true, ref = "7d985b4dc97a96465f5bb00e843baf221117619e"}
 
 [requires]
 python_version = "3.7"
