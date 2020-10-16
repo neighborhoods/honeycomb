@@ -37,8 +37,6 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
-
-    reserved_words = ['date', 'time', 'timestamp', 'datetime']
     columns_and_types = (
         col_defs
         .to_frame()
@@ -46,7 +44,7 @@ def build_create_table_ddl(table_name, schema, col_defs,
         .replace('\n', ',\n    ')
     )
     columns_and_types = re.sub(
-        r'(?<=\s|,)({})(?=\:| )'.format('|'.join(reserved_words)),
+        r'(?<=\s|,)({})(?=\:| )'.format('|'.join(meta.hive_reserved_words)),
         lambda x: '`{}`'.format(x[0]),
         columns_and_types
     )
