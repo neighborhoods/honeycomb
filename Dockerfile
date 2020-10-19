@@ -6,7 +6,7 @@ ARG NHDS_PYPI_PASSWORD
 
 COPY . .
 
-RUN apt-get update; apt-get install -y libsasl2-dev
+RUN apt-get update; apt-get install -y libsasl2-dev gcc
 
 RUN pip install pipenv
 
