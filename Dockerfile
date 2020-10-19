@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 ARG NHDS_PYPI_USERNAME
 ARG NHDS_PYPI_PASSWORD
 
-RUN apt-get update; apt-get install -y build-essential gcc libsasl2-dev
+RUN apt-get update; apt-get install -y build-essential gcc git libsasl2-dev
 
 RUN pip install pipenv
 
