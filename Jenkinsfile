@@ -3,6 +3,6 @@ runNeighborhoodsPipeline([
     tests: [
         'Dev/User environment Comparison': 'pipenv-devcheck',
         'Unit testing': 'python -m pytest',
-        'Linting/Style Checking': "python -m flake8 --max-line-length 100"
+        'Linting/Style Checking': "python -m flake8 honeycomb/ test/ --max-line-length 100"
     ],
 ])
