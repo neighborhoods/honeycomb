@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6c754bdccd13a045897cd1b34720e52517146868448fcf6e0ab2818b305a0377"
+            "sha256": "31358ccbb4046b506d08c727b5a34b7ef4b16adbfe833ff6a8ad522b3fd81a25"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -235,11 +235,12 @@
             "version": "==1.1.3"
         },
         "pandavro": {
+            "editable": true,
+            "git": "https://github.com/Geoiv/pandavro.git",
             "hashes": [
                 "sha256:fd4ede1600cfc08150f28a7a1c1dd4abfbc87d76cd4a5b1639c8f55a04e97914"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
-            "version": "==1.5.2"
+            "ref": "7d985b4dc97a96465f5bb00e843baf221117619e"
         },
         "pyarrow": {
             "hashes": [
