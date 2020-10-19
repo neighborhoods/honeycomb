@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2020-10-16
+
+### Added
+- Complex type support for Avro type
+
+### Changed
+- Optimized schema assumption logic for complex types
+- Bugfix in table appending logic for JSON tables
+
 ## [1.0.1] - 2020-09-21
 
 ### Added

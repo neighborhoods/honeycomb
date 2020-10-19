@@ -45,6 +45,9 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
+    if copy_df:
+        df = df.copy()
+
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
     table_exists = check.table_existence(table_name, schema)
@@ -75,6 +78,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                        'Which will be overwritten by this operation. '
                        'Specify a different filename to proceed.')
 
+    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
         df, spec_dtypes=dtypes, spec_timezones=timezones,
         schema=schema, copy_df=copy_df)

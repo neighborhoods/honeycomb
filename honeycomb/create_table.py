@@ -1,8 +1,10 @@
 from collections import OrderedDict
 import os
+import re
 import subprocess
 import sys
 
+import pandavro as pdx
 import river as rv
 
 from honeycomb import check, dtype_mapping, hive, meta
@@ -33,20 +35,32 @@ def add_comments_to_col_defs(col_defs, comments):
 
 def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
-                           partitioned_by, full_path):
+                           partitioned_by, full_path,
+                           tblproperties=None):
+    columns_and_types = (
+        col_defs
+        .to_frame()
+        .to_string(header=False)
+        .replace('\n', ',\n    ')
+    )
+    columns_and_types = re.sub(
+        r'(?<=\s|,)({})(?=\:| )'.format('|'.join(meta.hive_reserved_words)),
+        lambda x: '`{}`'.format(x[0]),
+        columns_and_types
+    )
+
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
     {columns_and_types}
 ){table_comment}{partitioned_by}
 {storage_format_ddl}
-LOCATION 's3://{full_path}'
+LOCATION 's3://{full_path}'{tblproperties}
     """.format(
         schema=schema,
         table_name=table_name,
         # BUG: pd.Series truncates long strings output by to_string,
         # have to cast to DataFrame first.
-        columns_and_types=col_defs.to_frame().to_string(
-            header=False).replace('\n', ',\n    '),
+        columns_and_types=columns_and_types,
         table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
         partitioned_by=('\nPARTITIONED BY ({})'.format(', '.join(
@@ -54,7 +68,11 @@ LOCATION 's3://{full_path}'
              for partition_name, partition_type in partitioned_by.items()]))
             if partitioned_by else ''),
         storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
-        full_path=full_path.rsplit('/', 1)[0] + '/'
+        full_path=full_path.rsplit('/', 1)[0] + '/',
+        tblproperties=('\nTBLPROPERTIES (\n  {}\n)'.format('\n  '.join([
+            '\'{}\'=\'{}\''.format(prop_name, prop_val)
+            for prop_name, prop_val in tblproperties.items()]))
+            if tblproperties else '')
     )
 
     return create_table_ddl
@@ -176,8 +194,8 @@ def create_table_from_df(df, table_name, schema=None,
             memory efficient, but may be undesirable if the df is needed
             again later
         partitioned_by (dict<str:str>,
-                    collections.OrderedDict<str:str>, or
-                    list<tuple<str:str>>, optional):
+                        collections.OrderedDict<str:str>, or
+                        list<tuple<str:str>>, optional):
             Dictionary or list of tuples containing a partition name and type.
             Cannot be a vanilla dictionary if using Python version < 3.6
         partition_values (dict<str:str>):
@@ -191,6 +209,9 @@ def create_table_from_df(df, table_name, schema=None,
             Whether the df that the table's structure will be based off of
             should be automatically uploaded to the table
     """
+    if copy_df:
+        df = df.copy()
+
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
     if partitioned_by:
@@ -242,19 +263,26 @@ def create_table_from_df(df, table_name, schema=None,
             'attempting table creation.').format(bucket, path))
 
     storage_type = os.path.splitext(filename)[-1][1:].lower()
+    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
+
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
     full_path = '/'.join([bucket, path])
 
+    tblproperties = {}
+    if storage_type == 'avro':
+        tblproperties['avro.schema.literal'] = str(
+            pdx.schema_infer(df)).replace('\'', '"')
+
     create_table_ddl = build_create_table_ddl(table_name, schema,
                                               col_defs, table_comment,
                                               storage_type, partitioned_by,
-                                              full_path)
+                                              full_path, tblproperties)
     print(create_table_ddl)
     hive.run_lake_query(create_table_ddl, engine='hive')
 
