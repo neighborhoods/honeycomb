@@ -13,13 +13,15 @@ def get_db_connection(engine='hive', addr='localhost', cursor=True):
         of a connection rather than a connection object itself.
     """
     if engine == 'hive':
-        conn = hive.connect(addr)
-        if cursor:
-            conn = conn.cursor()
+        port = 10000
+        engine_module = hive
     elif engine == 'presto':
-        conn = presto.connect(addr)
-        if cursor:
-            conn = conn.cursor()
+        port = 8889
+        engine_module = presto
     else:
         raise ValueError('Specified engine is not supported: ' + engine)
+
+    conn = engine_module.connect(addr, port=port)
+    if cursor:
+        conn = conn.cursor()
     return conn
