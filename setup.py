@@ -72,7 +72,7 @@ setup(
         'pandas>=1.0.0',
         'pyhive[hive, presto]>=0.6.1',
         'river>=1.1.1',  # Must configure NHDS PyPi as an external url for pip
-        'pandavro @ git+https://github.com/Geoiv/pandavro.git' # noqa
+        'pandavro @ git+https://github.com/Geoiv/pandavro.git'
     ],
     extras_require={
         'salesforce': ['simple-salesforce>=1.1.0']

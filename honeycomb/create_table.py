@@ -227,6 +227,7 @@ def create_table_from_df(df, table_name, schema=None,
         avro_schema = pdx.schema_infer(df)
         tblproperties['avro.schema.literal'] = pprint.pformat(
             avro_schema).replace('\'', '"')
+        # So pandavro doesn't have to infer the schema a second time
         storage_settings['schema'] = avro_schema
 
     create_table_ddl = build_create_table_ddl(table_name, schema,
