@@ -238,7 +238,7 @@ def create_table_from_df(df, table_name, schema=None,
                 'values must be passed to "partition_values" as well.')
 
     if schema != 'experimental':
-        # check_for_comments(table_comment, df.columns, col_comments)
+        check_for_comments(table_comment, df.columns, col_comments)
         if overwrite:
             raise ValueError(
                 'Overwrite functionality is only available in the '

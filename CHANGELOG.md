@@ -14,9 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 schema twice
 - Attempting to use `add_partition` to add a partition that already exists
 will no longer raise an exception
-- Table/column comments are no longer enforced by `honeycomb` - it gets in the
-way of prompt work, especially given that comments can be added after the fact.
-This will now just be enforced via best practices.
 - Removed bug in append logic that would occasionally result in errors being
 raised from non-existent column mismatches.
 
