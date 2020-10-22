@@ -17,6 +17,8 @@ will no longer raise an exception
 - Table/column comments are no longer enforced by `honeycomb` - it gets in the
 way of prompt work, especially given that comments can be added after the fact.
 This will now just be enforced via best practices.
+- Removed bug in append logic that would occasionally result in errors being
+raised from non-existent column mismatches.
 
 ## [1.1.1] - 2020-10-20
 
