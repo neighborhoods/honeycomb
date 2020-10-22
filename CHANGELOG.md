@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.1] - 2020-10-20
 
 ### Changed
+- Creating an Avro table from a dataframe will no longer generate the Avro
+schema twice
+- Attempting to use `add_partition` to add a partition that already exists
+will no longer raise an exception
+- Table/column comments are no longer enforced by `honeycomb` - it gets in the
+way of prompt work, especially given that comments can be added after the fact.
+This will now just be enforced via best practices.
+
+## [1.1.1] - 2020-10-20
+
+### Changed
 - honeycomb will now check for the env var `HC_LAKE_ADDR` to determine which
 address to connect to
 
