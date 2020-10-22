@@ -10,7 +10,8 @@ def add_partition(table_name, schema, partition_values):
 
     if not check.partition_existence(table_name, schema, partition_values):
         add_partition_query = (
-            'ALTER TABLE {}.{} ADD PARTITION ({}) LOCATION \'{}\''.format(
+            'ALTER TABLE {}.{} ADD IF NOT EXISTS '
+            'PARTITION ({}) LOCATION \'{}\''.format(
                 schema,
                 table_name,
                 ', '.join(partition_strings),

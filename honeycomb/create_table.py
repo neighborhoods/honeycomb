@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import os
+import pprint
 import re
 import subprocess
 import sys
@@ -43,9 +44,18 @@ def build_create_table_ddl(table_name, schema, col_defs,
         .to_string(header=False)
         .replace('\n', ',\n    ')
     )
+
+    # Wrapping any column names that are reserved words in '`' characters
     columns_and_types = re.sub(
         r'(?<=\s|,)({})(?=\:| )'.format('|'.join(meta.hive_reserved_words)),
         lambda x: '`{}`'.format(x[0]),
+        columns_and_types
+    )
+
+    # Removing excess whitespace left by df.to_string()
+    columns_and_types = re.sub(
+        r'(\S+)( +)(\S.*)(?=,|$)',
+        lambda x: x.group(1) + ' ' + x.group(3),
         columns_and_types
     )
 
@@ -81,7 +91,6 @@ LOCATION 's3://{full_path}'{tblproperties}
 def check_for_comments(table_comment, columns, col_comments):
     """
     Checks that table and column comments are all present.
-
     Args:
         table_comment (str): Value to be used as a table comment in a new table
         columns (pd.Index): Columns of the dataframe to be uploaded to the lake
@@ -276,8 +285,11 @@ def create_table_from_df(df, table_name, schema=None,
 
     tblproperties = {}
     if storage_type == 'avro':
-        tblproperties['avro.schema.literal'] = str(
-            pdx.schema_infer(df)).replace('\'', '"')
+        avro_schema = pdx.schema_infer(df)
+        tblproperties['avro.schema.literal'] = pprint.pformat(
+            avro_schema).replace('\'', '"')
+        # So pandavro doesn't have to infer the schema a second time
+        storage_settings['schema'] = avro_schema
 
     create_table_ddl = build_create_table_ddl(table_name, schema,
                                               col_defs, table_comment,

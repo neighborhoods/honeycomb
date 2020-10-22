@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "31358ccbb4046b506d08c727b5a34b7ef4b16adbfe833ff6a8ad522b3fd81a25"
+            "sha256": "fcc0442792d72b98a1619a0467dbd24c8946f0e34042f2a05740d97b003ddffd"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -30,17 +30,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:2e16f02c8b832d401d958d7ca0a14c5bc7da17827918e6b24e5bc43dce8f496e",
-                "sha256:ab5353a968a4e664b9da2dd950169b755066525fcbfdfc90e7e49c8333d95c19"
+                "sha256:a4784b01f545c8bd23df9369b24bcd31fb8d1b6256288b1b5680daefa2e33374",
+                "sha256:fb0e3dc534d6e34371c3b471fb3de8c287b18f700382b7b9bdb56e8c32ef83e4"
             ],
-            "version": "==1.16.0"
+            "version": "==1.16.2"
         },
         "botocore": {
             "hashes": [
-                "sha256:226effa72e3ddd0a802e812c0e204999393ca7982fee754cc0c770a7a1caef3a",
-                "sha256:9bf8586b69f20cf0a8ed1e27338cd10ce847751d1a2fd98b92662565c8a2df24"
+                "sha256:dc52d4eb5c2a4360506bdd8a99aca7ebc31c56849faf98c707e5201fcbb56957",
+                "sha256:edb4292afe8c66099d45b3650da4757a228d38d25dbe884040cc1804a03d5020"
             ],
-            "version": "==1.19.0"
+            "version": "==1.19.2"
         },
         "certifi": {
             "hashes": [
@@ -237,10 +237,7 @@
         "pandavro": {
             "editable": true,
             "git": "https://github.com/Geoiv/pandavro.git",
-            "hashes": [
-                "sha256:fd4ede1600cfc08150f28a7a1c1dd4abfbc87d76cd4a5b1639c8f55a04e97914"
-            ],
-            "ref": "7d985b4dc97a96465f5bb00e843baf221117619e"
+            "ref": "16578a37626c03d38639f176869161109f967686"
         },
         "pyarrow": {
             "hashes": [
@@ -413,17 +410,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:2e16f02c8b832d401d958d7ca0a14c5bc7da17827918e6b24e5bc43dce8f496e",
-                "sha256:ab5353a968a4e664b9da2dd950169b755066525fcbfdfc90e7e49c8333d95c19"
+                "sha256:a4784b01f545c8bd23df9369b24bcd31fb8d1b6256288b1b5680daefa2e33374",
+                "sha256:fb0e3dc534d6e34371c3b471fb3de8c287b18f700382b7b9bdb56e8c32ef83e4"
             ],
-            "version": "==1.16.0"
+            "version": "==1.16.2"
         },
         "botocore": {
             "hashes": [
-                "sha256:226effa72e3ddd0a802e812c0e204999393ca7982fee754cc0c770a7a1caef3a",
-                "sha256:9bf8586b69f20cf0a8ed1e27338cd10ce847751d1a2fd98b92662565c8a2df24"
+                "sha256:dc52d4eb5c2a4360506bdd8a99aca7ebc31c56849faf98c707e5201fcbb56957",
+                "sha256:edb4292afe8c66099d45b3650da4757a228d38d25dbe884040cc1804a03d5020"
             ],
-            "version": "==1.19.0"
+            "version": "==1.19.2"
         },
         "certifi": {
             "hashes": [
@@ -907,10 +904,10 @@
         },
         "readme-renderer": {
             "hashes": [
-                "sha256:3176d93d2c21960fb7f7458073b9f1e5dd14a5af0ec6af4afb957337dbb6a326",
-                "sha256:e6871b10341cdd85ade112fb8503b31301d1ca12c0c3b3e1358855329519968b"
+                "sha256:267854ac3b1530633c2394ead828afcd060fc273217c42ac36b6be9c42cd9a9d",
+                "sha256:6b7e5aa59210a40de72eb79931491eaf46fefca2952b9181268bd7c7c65c260a"
             ],
-            "version": "==27.0"
+            "version": "==28.0"
         },
         "requests": {
             "hashes": [
