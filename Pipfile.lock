@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fcc0442792d72b98a1619a0467dbd24c8946f0e34042f2a05740d97b003ddffd"
+            "sha256": "0ecafc7944b6b916f1173701c737359dee250741d29d1f3ebba19a40ecff5c43"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -30,17 +30,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:a4784b01f545c8bd23df9369b24bcd31fb8d1b6256288b1b5680daefa2e33374",
-                "sha256:fb0e3dc534d6e34371c3b471fb3de8c287b18f700382b7b9bdb56e8c32ef83e4"
+                "sha256:60c78f96c690974cd388270e4c82e4807f5034c5544f8a26ec3c3844df726cff",
+                "sha256:8611d07488bb36b509d9a79a4ab593cf1c96f9c0d177733007568cbfa1079914"
             ],
-            "version": "==1.16.2"
+            "version": "==1.16.4"
         },
         "botocore": {
             "hashes": [
-                "sha256:dc52d4eb5c2a4360506bdd8a99aca7ebc31c56849faf98c707e5201fcbb56957",
-                "sha256:edb4292afe8c66099d45b3650da4757a228d38d25dbe884040cc1804a03d5020"
+                "sha256:c78fe2fb4790e9f06dc40a28402893f12088c4aa88b739475827d9674972f1c4",
+                "sha256:cd5d2fceef451ee28b149a0c7de848710daab52d8273330e092ccc316d42b2c7"
             ],
-            "version": "==1.19.2"
+            "version": "==1.19.4"
         },
         "certifi": {
             "hashes": [
@@ -235,9 +235,12 @@
             "version": "==1.1.3"
         },
         "pandavro": {
-            "editable": true,
-            "git": "https://github.com/Geoiv/pandavro.git",
-            "ref": "16578a37626c03d38639f176869161109f967686"
+            "hashes": [
+                "sha256:1ec4c4eefe88b43b867c59a23d3ed56cb93fcdf54d6cffe7769734ff01da6d72",
+                "sha256:50ca06d8559ae028fe608867a22481358f84985d49c2d379f7be52e8108d9260"
+            ],
+            "index": "nhds",
+            "version": "==1.5.100"
         },
         "pyarrow": {
             "hashes": [
@@ -313,11 +316,11 @@
         },
         "river": {
             "hashes": [
-                "sha256:3a72ad459525a67d285916ddfed7c07c7c03a64499a380b3aee5736455cb9c9a",
-                "sha256:c5c753558871cbde3eb0261f515d35e9648849dec31d0ed10d5319475b3d938c"
+                "sha256:4e22554a2bbd14eb83c6c665dbd06da0aea5244c1bc852629110e64d2abf13b2",
+                "sha256:65564cacf84462f6fdb89364dd771c99612f5d93b92b42a31e9017b4c4f2ddf6"
             ],
             "index": "nhds",
-            "version": "==1.1.1"
+            "version": "==1.2.0"
         },
         "s3transfer": {
             "hashes": [
@@ -410,17 +413,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:a4784b01f545c8bd23df9369b24bcd31fb8d1b6256288b1b5680daefa2e33374",
-                "sha256:fb0e3dc534d6e34371c3b471fb3de8c287b18f700382b7b9bdb56e8c32ef83e4"
+                "sha256:60c78f96c690974cd388270e4c82e4807f5034c5544f8a26ec3c3844df726cff",
+                "sha256:8611d07488bb36b509d9a79a4ab593cf1c96f9c0d177733007568cbfa1079914"
             ],
-            "version": "==1.16.2"
+            "version": "==1.16.4"
         },
         "botocore": {
             "hashes": [
-                "sha256:dc52d4eb5c2a4360506bdd8a99aca7ebc31c56849faf98c707e5201fcbb56957",
-                "sha256:edb4292afe8c66099d45b3650da4757a228d38d25dbe884040cc1804a03d5020"
+                "sha256:c78fe2fb4790e9f06dc40a28402893f12088c4aa88b739475827d9674972f1c4",
+                "sha256:cd5d2fceef451ee28b149a0c7de848710daab52d8273330e092ccc316d42b2c7"
             ],
-            "version": "==1.19.2"
+            "version": "==1.19.4"
         },
         "certifi": {
             "hashes": [
@@ -478,11 +481,11 @@
         },
         "cfn-lint": {
             "hashes": [
-                "sha256:51d810bf63ee244a1b347e88d7ea53fa60308b4d36503bb86844c6ea280a6ff2",
-                "sha256:c89b70933fc2e7066acfd293c86cbd7f507fe4d764347fe23c3f8f17c54b4b2c"
+                "sha256:5f48c8be94f7b3575dad5a26138a0f2aaf310ce7c2378bfa4f23a36e1c761121",
+                "sha256:cd5e813aa6656caf3a1ff7fd6edb473463cd4242cbc96e87365cf3963fb8a078"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-            "version": "==0.38.0"
+            "version": "==0.39.0"
         },
         "chardet": {
             "hashes": [

@@ -20,9 +20,9 @@ wheel = "~=0.34"
 [packages]
 pandas = "~=1.0"
 pyhive = {extras = ["hive", "presto"], version = "~=0.6.1"}
-river = {version="~=1.1", index="nhds"}
+river = {version="~=1.2", index="nhds"}
 simple-salesforce = "~=1.1"
-pandavro = {git = "https://github.com/Geoiv/pandavro.git", editable = true}
+pandavro = {version = "==1.5.100", index = "nhds"}
 
 [requires]
 python_version = "3.7"
