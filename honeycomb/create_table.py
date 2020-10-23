@@ -2,7 +2,6 @@ from collections import OrderedDict
 import os
 import pprint
 import re
-import subprocess
 import sys
 
 import pandavro as pdx
@@ -325,11 +324,4 @@ def __nuke_table(table_name, schema):
         table_name),
         engine='hive'
     )
-    rm_command = 'aws s3 rm --recursive s3://{}/{}'.format(
-        current_bucket,
-        current_path
-    )
-    print(rm_command)
-    cp_process = subprocess.Popen(rm_command.split(),
-                                  stdout=subprocess.PIPE)
-    output, error = cp_process.communicate()
+    rv.delete(current_path, current_bucket, recursive=True)

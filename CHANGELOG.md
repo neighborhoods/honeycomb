@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.1] - 2020-10-20
+## [1.1.3] - 2020-10-23
+
+### Changed
+- Changed `__nuke_table` to use `river` instead of `awscli`
+
+## [1.1.2] - 2020-10-22
 
 ### Changed
 - Creating an Avro table from a dataframe will no longer generate the Avro
