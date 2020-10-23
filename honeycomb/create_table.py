@@ -20,11 +20,6 @@ schema_to_zone_bucket_map = {
 
 
 def add_comments_to_col_defs(col_defs, comments):
-    col_defs = (
-        col_defs
-        .to_frame(name='dtype')
-    )
-
     for column, comment in comments.items():
         col_defs.loc[col_defs.index == column, 'comment'] = comment
 
@@ -37,12 +32,7 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
-    columns_and_types = (
-        col_defs
-        .to_frame()
-        .to_string(header=False)
-        .replace('\n', ',\n    ')
-    )
+    columns_and_types = col_defs.to_string(header=False)
 
     # Wrapping any column names that are reserved words in '`' characters
     columns_and_types = re.sub(
@@ -53,10 +43,12 @@ def build_create_table_ddl(table_name, schema, col_defs,
 
     # Removing excess whitespace left by df.to_string()
     columns_and_types = re.sub(
-        r'(\S+)( +)(\S.*)(?=,|$)',
-        lambda x: x.group(1) + ' ' + x.group(3),
+        r' +',
+        ' ',
         columns_and_types
     )
+
+    columns_and_types = columns_and_types.replace('\n', ',\n    ')
 
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
@@ -275,6 +267,7 @@ def create_table_from_df(df, table_name, schema=None,
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
+    col_defs = col_defs.to_frame(name='dtype')
 
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
