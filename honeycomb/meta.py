@@ -92,14 +92,9 @@ def get_table_column_order(table_name, schema):
         schema (str): The schema the table is in
     """
     colname_col = 'col_name'
-    description = describe_table(table_name, schema)
-    if any(description[colname_col] == '# Partition Information'):
-        colname_end = description.index[
-            description['col_name'] == '# Partition Information'][0] - 2
-
-        columns = description.loc[0:colname_end, 'col_name']
-    else:
-        columns = description['col_name']
+    description = describe_table(table_name, schema, include_metadata=True)
+    colname_end = description.index[description[colname_col] == ''][0] - 1
+    columns = description.loc[:colname_end, colname_col]
     return columns.to_list()
 
 

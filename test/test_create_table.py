@@ -44,13 +44,12 @@ def test_create_table_from_df_already_exists(mocker, test_df):
 
 def test_add_comments_to_col_defs(test_df):
     """Tests that comments are added to column definitions as expected"""
-    col_defs = pd.Series(
-        data=[
-            'object', 'int64', 'float64',
-            'bool', 'datetime64', 'timedelta'],
-        index=['objcol', 'intcol', 'floatcol',
-               'boolcol', 'dtcol', 'timedeltacol']
-    )
+    col_defs = pd.DataFrame({
+        'col_name': ['objcol', 'intcol', 'floatcol',
+                     'boolcol', 'dtcol', 'timedeltacol'],
+        'dtype': ['object', 'int64', 'float64',
+                  'bool', 'datetime64', 'timedelta']
+    })
 
     comments = {
         'objcol': 'This column is type "object"',
@@ -61,7 +60,7 @@ def test_add_comments_to_col_defs(test_df):
         'timedeltacol': 'This column is type "timedelta"'
     }
 
-    expected_df = col_defs.to_frame(name='dtype')
+    expected_df = col_defs.copy()
     expected_df['comment'] = [
         ' COMMENT \'This column is type "object"\'',
         ' COMMENT \'This column is type "int64"\'',
