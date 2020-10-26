@@ -21,7 +21,7 @@ schema_to_zone_bucket_map = {
 
 def add_comments_to_col_defs(col_defs, comments):
     for column, comment in comments.items():
-        col_defs.loc[col_defs.index == column, 'comment'] = comment
+        col_defs.loc[col_defs['col_name'] == column, 'comment'] = comment
 
     col_defs['comment'] = (
         ' COMMENT \'' + col_defs['comment'].astype(str) + '\'')
@@ -267,7 +267,12 @@ def create_table_from_df(df, table_name, schema=None,
     df = dtype_mapping.special_dtype_handling(
         df, dtypes, timezones, schema, copy_df)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
-    col_defs = col_defs.to_frame(name='dtype')
+    col_defs = (
+        col_defs
+        .to_frame(name='dtype')
+        .reset_index()
+        .rename(columns={'index': 'col_name'})
+    )
 
     if col_comments is not None:
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
@@ -295,7 +300,8 @@ def create_table_from_df(df, table_name, schema=None,
     path += filename
 
     if auto_upload_df:
-        _ = rv.write(df, path, bucket, **storage_settings)
+        _ = rv.write(df, path, bucket,
+                     show_progressbar=False, **storage_settings)
 
 
 def __nuke_table(table_name, schema):

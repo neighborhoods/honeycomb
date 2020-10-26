@@ -74,9 +74,11 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
     path += filename
 
     if rv.exists(path, bucket) and not overwrite_file:
-        raise KeyError('A file already exists at s3://' + bucket + path + ', '
+        raise KeyError('A file already exists at s3://{}/{}, '
                        'Which will be overwritten by this operation. '
-                       'Specify a different filename to proceed.')
+                       'Specify a different filename to proceed.'.format(
+                           bucket, path
+                       ))
 
     df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
@@ -87,7 +89,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                                        require_identical_columns)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
-    rv.write(df, path, bucket, **storage_settings)
+    rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
 
 
 def reorder_columns_for_appending(df, table_name, schema,
@@ -135,7 +137,13 @@ def reorder_columns_for_appending(df, table_name, schema,
         new_df_col_order = table_col_order + extra_cols_in_df
         return df[new_df_col_order]
     else:
-        raise ValueError('The provided dataframe\'s columns do not match '
-                         'the columns of the table. To ignore this and '
-                         'proceed anyway, set "require_identical_columns" '
-                         'to False.')
+        in_table_not_df = set(table_col_order).difference(set(df.columns))
+        in_df_not_table = set(df.columns).difference(set(table_col_order))
+        raise ValueError(
+            'The provided dataframe\'s columns do not match '
+            'the columns of the table. To ignore this and '
+            'proceed anyway, set "require_identical_columns" '
+            'to False.\n'
+            'Columns in table, but not dataframe: {}\n'
+            'Columns in dataframe, but not table: {}'
+            .format(in_table_not_df, in_df_not_table))
