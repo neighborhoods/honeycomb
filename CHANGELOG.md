@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - If column mismatches are found in `append_df_to_table`, the mismatched
 columns are now printed
 - Slight logic changes in table creation and metadata access
+  - Getting the column order of a table no longer includes partition keys in the returned list
+  - Adding comments to column definitions now expects `col_defs` as a DataFrame rather than a Series
 - Output formatting
 
 ## [1.1.3] - 2020-10-23
