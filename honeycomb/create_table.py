@@ -32,7 +32,7 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
-    columns_and_types = col_defs.to_string(header=False)
+    columns_and_types = col_defs.to_string(header=False, index=False)
 
     # Wrapping any column names that are reserved words in '`' characters
     columns_and_types = re.sub(
