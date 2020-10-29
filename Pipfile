@@ -18,7 +18,7 @@ twine = "~=3.2"
 wheel = "~=0.34"
 
 [packages]
-pandas = "~=1.0"
+pandas = ">=0.25.3"
 pyhive = {extras = ["hive", "presto"], version = "~=0.6.1"}
 river = {version="~=1.2", index="nhds"}
 simple-salesforce = "~=1.1"

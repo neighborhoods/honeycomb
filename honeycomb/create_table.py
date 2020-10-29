@@ -230,7 +230,7 @@ def create_table_from_df(df, table_name, schema=None,
 
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
-        if overwrite:
+        if overwrite and not os.getenv('HC_PROD_ENV'):
             raise ValueError(
                 'Overwrite functionality is only available in the '
                 'experimental zone. Contact a lake administrator if '
