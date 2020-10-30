@@ -65,6 +65,11 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
 
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema, storage_type)
+    if not filename.endswith(storage_type):
+        raise ValueError(
+            'The type specified in the filename does not match the '
+            'filetype of the table.'
+        )
     if not path.endswith('/'):
         path += '/'
 

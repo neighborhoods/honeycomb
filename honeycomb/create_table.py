@@ -161,7 +161,8 @@ def create_table_from_df(df, table_name, schema=None,
                          table_comment=None, col_comments=None,
                          timezones=None, copy_df=True,
                          partitioned_by=None, partition_values=None,
-                         overwrite=False, auto_upload_df=True):
+                         overwrite=False, flash_update=False,
+                         auto_upload_df=True):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -205,7 +206,9 @@ def create_table_from_df(df, table_name, schema=None,
         overwrite (bool, default False):
             Whether to overwrite the current table if one is already present
             at the specified name
-        auto_upload_df (bool, optional):
+        flash_update (bool, default False):
+            q
+        auto_upload_df (bool, default True):
             Whether the df that the table's structure will be based off of
             should be automatically uploaded to the table
     """
@@ -228,12 +231,18 @@ def create_table_from_df(df, table_name, schema=None,
                 'If using "partitioned_by" and "auto_upload_df" is True, '
                 'values must be passed to "partition_values" as well.')
 
+    if overwrite and flash_update:
+        raise ValueError(
+            '"overwrite" and "flash_update" cannot both be true, as their '
+            'behaviors overlap.'
+        )
+    rm_involved = overwrite or flash_update
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
-        if overwrite and not os.getenv('HC_PROD_ENV'):
+        if rm_involved and not os.getenv('HC_PROD_ENV'):
             raise ValueError(
-                'Overwrite functionality is only available in the '
-                'experimental zone. Contact a lake administrator if '
+                'Overwrite/flash update functionality is only available in '
+                'the experimental zone. Contact a lake administrator if '
                 'modification of a non-experimental table is needed.')
 
     if path is None:
@@ -244,18 +253,28 @@ def create_table_from_df(df, table_name, schema=None,
         path += '/'
 
     bucket = schema_to_zone_bucket_map[schema]
+    objects_present = rv.list_objects(path, bucket)
 
     table_exists = check.table_existence(table_name, schema)
     if table_exists:
-        if not overwrite:
+        if not rm_involved:
             raise ValueError(
                 'Table \'{schema}.{table_name}\' already exists. '.format(
                     schema=schema,
                     table_name=table_name))
-        else:
+        elif flash_update:
+            if len(objects_present) > 1:
+                raise ValueError(
+                    'Flash update functionality is only available on '
+                    'tables that only consist of one underlying file.')
+            if check.any_partition_existence(table_name, schema):
+                raise ValueError(
+                    'Flash update functionality is not available on '
+                    'partitioned tables.')
+        elif overwrite:
             __nuke_table(table_name, schema)
 
-    if rv.list_objects(path, bucket):
+    elif objects_present:
         raise KeyError((
             'Files are already present in s3://{}/{}. Creation of a new table '
             'requires a dedicated, empty folder. Either specify a different '
@@ -302,6 +321,26 @@ def create_table_from_df(df, table_name, schema=None,
     if auto_upload_df:
         _ = rv.write(df, path, bucket,
                      show_progressbar=False, **storage_settings)
+
+
+def flash_update_table_from_df(df, table_name, schema, **kwargs):
+    table_exists = check.table_existence(table_name, schema)
+    if not table_exists:
+        raise ValueError(
+            'Table {}.{} does not exist.'.format(schema, table_name)
+        )
+    table_metadata = meta.get_table_metadata(table_name, schema)
+
+    bucket = table_metadata['bucket']
+    path = table_metadata['path']
+    if not path.endswith('/'):
+        path += '/'
+
+    objects_present = rv.list_objects(path, bucket)
+    filename = objects_present[0] if objects_present else None
+
+    create_table_from_df(df, table_name, schema, path=path, filename=filename,
+                         flash_update=True, **kwargs)
 
 
 def __nuke_table(table_name, schema):
