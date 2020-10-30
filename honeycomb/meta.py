@@ -176,3 +176,10 @@ def get_table_storage_type_from_metadata(table_metadata):
             storage_format = 'csv'
 
     return storage_format
+
+
+def is_partitioned_table(table_name, schema):
+    desc = describe_table(table_name, schema)
+    if any(desc['col_name'] == '# Partition Information'):
+        return True
+    return False

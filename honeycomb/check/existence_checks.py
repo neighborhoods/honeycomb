@@ -1,5 +1,4 @@
 from honeycomb import hive
-from honeycomb.describe_table import describe_table
 
 
 def check_schema_existence(schema):
@@ -76,11 +75,4 @@ def check_partition_existence(table_name, schema,
             }
             if partition_values == existing_partition_values:
                 return True
-    return False
-
-
-def check_any_partition_existence(table_name, schema):
-    desc = describe_table(table_name, schema)
-    if any(desc['col_name'] == '# Partition Information'):
-        return True
     return False
