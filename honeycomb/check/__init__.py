@@ -6,5 +6,5 @@ from .existence_checks import (
 __all__ = [
     'schema_existence',
     'table_existence',
-    'partition_existence',
+    'partition_existence'
 ]

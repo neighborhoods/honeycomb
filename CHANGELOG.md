@@ -9,8 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.5] - 2020-10-29
 
+### Added
+- Flash update functionality: Tables that are based on single files can be overwritten with minimal downtime.
+Mostly for production situations in which a whole table needs to be replaced regularly.
+
 ### Changed
-- `create_table_from_df` can now overwrite tables out
+- `create_table_from_df` can now overwrite tables outside of the experimental zone if
+the `HC_PROD_ENV` envvar is set.
 - Relaxed `pandas` dependency requirement
 
 ## [1.1.4] - 2020-10-26

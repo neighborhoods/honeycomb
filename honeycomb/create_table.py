@@ -161,8 +161,7 @@ def create_table_from_df(df, table_name, schema=None,
                          table_comment=None, col_comments=None,
                          timezones=None, copy_df=True,
                          partitioned_by=None, partition_values=None,
-                         overwrite=False, flash_update=False,
-                         auto_upload_df=True):
+                         overwrite=False, auto_upload_df=True):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -233,8 +232,8 @@ def create_table_from_df(df, table_name, schema=None,
         check_for_comments(table_comment, df.columns, col_comments)
         if overwrite and not os.getenv('HC_PROD_ENV'):
             raise ValueError(
-                'Overwrite functionality is only available in '
-                'the experimental zone. Contact a lake administrator if '
+                'Overwrite functionality is only available in the '
+                'experimental zone. Contact a lake administrator if '
                 'modification of a non-experimental table is needed.')
 
     table_exists = check.table_existence(table_name, schema)
@@ -244,7 +243,6 @@ def create_table_from_df(df, table_name, schema=None,
                 'Table \'{schema}.{table_name}\' already exists. '.format(
                     schema=schema,
                     table_name=table_name))
-
         else:
             __nuke_table(table_name, schema)
 
