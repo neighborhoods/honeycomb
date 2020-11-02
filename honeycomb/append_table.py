@@ -65,6 +65,11 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
 
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema, storage_type)
+    if not filename.endswith(storage_type):
+        raise ValueError(
+            'The type specified in the filename does not match the '
+            'filetype of the table.'
+        )
     if not path.endswith('/'):
         path += '/'
 
@@ -82,8 +87,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
 
     df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
-        df, spec_dtypes=dtypes, spec_timezones=timezones,
-        schema=schema, copy_df=copy_df)
+        df, spec_dtypes=dtypes, spec_timezones=timezones, schema=schema)
     df = reorder_columns_for_appending(df, table_name, schema,
                                        partition_values,
                                        require_identical_columns)

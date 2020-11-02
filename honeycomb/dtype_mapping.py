@@ -71,8 +71,7 @@ def make_datetimes_timezone_naive(df, datetime_cols, schema):
                             'must be timezone-aware.')
 
 
-def special_dtype_handling(df, spec_dtypes, spec_timezones,
-                           schema, copy_df=True):
+def special_dtype_handling(df, spec_dtypes, spec_timezones, schema):
     """
     Wrapper around functions for special handling of specific dtypes
 
@@ -178,6 +177,10 @@ def map_pd_to_db_dtypes(df, storage_type=None):
                 if any(db_dtypes.str.contains('ARRAY')):
                     raise TypeError('Lists are not currently supported in the '
                                     'Parquet storage format.')
+
+    db_dtypes = db_dtypes.to_frame(name='dtype').reset_index().rename(
+        columns={'index': 'col_name'})
+
     return db_dtypes
 
 

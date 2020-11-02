@@ -205,7 +205,7 @@ def create_table_from_df(df, table_name, schema=None,
         overwrite (bool, default False):
             Whether to overwrite the current table if one is already present
             at the specified name
-        auto_upload_df (bool, optional):
+        auto_upload_df (bool, default True):
             Whether the df that the table's structure will be based off of
             should be automatically uploaded to the table
     """
@@ -230,20 +230,11 @@ def create_table_from_df(df, table_name, schema=None,
 
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
-        if overwrite:
+        if overwrite and not os.getenv('HC_PROD_ENV'):
             raise ValueError(
                 'Overwrite functionality is only available in the '
                 'experimental zone. Contact a lake administrator if '
                 'modification of a non-experimental table is needed.')
-
-    if path is None:
-        path = table_name
-    if filename is None:
-        filename = meta.gen_filename_if_allowed(schema)
-    if not path.endswith('/'):
-        path += '/'
-
-    bucket = schema_to_zone_bucket_map[schema]
 
     table_exists = check.table_existence(table_name, schema)
     if table_exists:
@@ -255,6 +246,15 @@ def create_table_from_df(df, table_name, schema=None,
         else:
             __nuke_table(table_name, schema)
 
+    if path is None:
+        path = table_name
+    if filename is None:
+        filename = meta.gen_filename_if_allowed(schema)
+    if not path.endswith('/'):
+        path += '/'
+
+    bucket = schema_to_zone_bucket_map[schema]
+
     if rv.list_objects(path, bucket):
         raise KeyError((
             'Files are already present in s3://{}/{}. Creation of a new table '
@@ -262,32 +262,18 @@ def create_table_from_df(df, table_name, schema=None,
             'path for the table or ensure the directory is empty before '
             'attempting table creation.').format(bucket, path))
 
-    storage_type = os.path.splitext(filename)[-1][1:].lower()
-    df.columns = df.columns.str.lower()
-    df = dtype_mapping.special_dtype_handling(
-        df, dtypes, timezones, schema, copy_df)
-    col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
-    col_defs = (
-        col_defs
-        .to_frame(name='dtype')
-        .reset_index()
-        .rename(columns={'index': 'col_name'})
-    )
-
-    if col_comments is not None:
-        col_defs = add_comments_to_col_defs(col_defs, col_comments)
+    storage_type = get_storage_type_from_filename(filename)
+    df, col_defs = prep_df_and_col_defs(
+        df, dtypes, timezones, schema, storage_type, col_comments)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
-    full_path = '/'.join([bucket, path])
 
     tblproperties = {}
     if storage_type == 'avro':
-        avro_schema = pdx.schema_infer(df)
-        tblproperties['avro.schema.literal'] = pprint.pformat(
-            avro_schema).replace('\'', '"')
-        # So pandavro doesn't have to infer the schema a second time
-        storage_settings['schema'] = avro_schema
+        storage_settings, tblproperties = handle_avro_filetype(
+            df, storage_settings, tblproperties)
 
+    full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema,
                                               col_defs, table_comment,
                                               storage_type, partitioned_by,
@@ -302,6 +288,130 @@ def create_table_from_df(df, table_name, schema=None,
     if auto_upload_df:
         _ = rv.write(df, path, bucket,
                      show_progressbar=False, **storage_settings)
+
+
+def get_storage_type_from_filename(filename):
+    return os.path.splitext(filename)[-1][1:].lower()
+
+
+def prep_df_and_col_defs(df, dtypes, timezones, schema,
+                         storage_type, col_comments):
+    df.columns = df.columns.str.lower()
+    df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
+    col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
+
+    if col_comments is not None:
+        col_defs = add_comments_to_col_defs(col_defs, col_comments)
+    return df, col_defs
+
+
+def handle_avro_filetype(df, storage_settings, tblproperties):
+    avro_schema = pdx.schema_infer(df)
+    tblproperties['avro.schema.literal'] = pprint.pformat(
+        avro_schema).replace('\'', '"')
+    # So pandavro doesn't have to infer the schema a second time
+    storage_settings['schema'] = avro_schema
+
+    return storage_settings, tblproperties
+
+
+def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
+                               table_comment=None, col_comments=None,
+                               timezones=None, copy_df=True):
+    """
+    Overwrites single-file table with minimal table downtime.
+    Similar to 'create_table_from_df' with overwrite=True, but only usable
+    when the table only consists of one underlying file
+
+    Args:
+        df (pd.DataFrame): The DataFrame to create the table from.
+        table_name (str): The name of the table to be created
+        schema (str): The name of the schema to create the table in
+        dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
+            specific columns to be cast to prior to uploading.
+        table_comment (str, optional): Documentation on the table's purpose
+        col_comments (dict<str:str>, optional):
+            Dictionary from column name keys to column descriptions.
+        timezones (dict<str, str>):
+            Dictionary from datetime columns to the timezone they
+            represent. If the column is timezone-naive, it will have the
+            timezone added to its metadata, leaving the times themselves
+            unmodified. If the column is timezone-aware and is in a different
+            timezone than the one that is specified, the column's timezone
+            will be converted, modifying the original times.
+        copy_df (bool):
+            Whether the operations performed on df should be performed on the
+            original or a copy. Keep in mind that if this is set to False,
+            the original df passed in will be modified as well - twice as
+            memory efficient, but may be undesirable if the df is needed
+            again later
+    """
+    if copy_df:
+        df = df.copy()
+
+    table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
+    if schema != 'experimental':
+        check_for_comments(table_comment, df.columns, col_comments)
+        if not os.getenv('HC_PROD_ENV'):
+            raise ValueError(
+                'Flash update functionality is only available in '
+                'the experimental zone. Contact a lake administrator if '
+                'modification of a non-experimental table is needed.')
+
+    table_exists = check.table_existence(table_name, schema)
+    if not table_exists:
+        raise ValueError(
+            'Table {}.{} does not exist.'.format(schema, table_name)
+        )
+
+    table_metadata = meta.get_table_metadata(table_name, schema)
+    bucket = table_metadata['bucket']
+    path = table_metadata['path']
+    if not path.endswith('/'):
+        path += '/'
+
+    objects_present = rv.list_objects(path, bucket)
+
+    if len(objects_present) > 1:
+        raise ValueError(
+            'Flash update functionality is only available on '
+            'tables that only consist of one underlying file.')
+    if meta.is_partitioned_table(table_name, schema):
+        raise ValueError(
+            'Flash update functionality is not available on '
+            'partitioned tables.')
+
+    if objects_present:
+        filename = objects_present[0]
+    else:
+        filename = meta.gen_filename_if_allowed(schema)
+    path += filename
+
+    storage_type = get_storage_type_from_filename(filename)
+    df, col_defs = prep_df_and_col_defs(
+        df, dtypes, timezones, schema, storage_type, col_comments)
+
+    storage_settings = meta.storage_type_specs[storage_type]['settings']
+
+    tblproperties = {}
+    if storage_type == 'avro':
+        storage_settings, tblproperties = handle_avro_filetype(
+            df, storage_settings, tblproperties)
+
+    full_path = '/'.join([bucket, path])
+    create_table_ddl = build_create_table_ddl(table_name, schema,
+                                              col_defs, table_comment,
+                                              storage_type,
+                                              partitioned_by=None,
+                                              full_path=full_path,
+                                              tblproperties=tblproperties)
+    print(create_table_ddl)
+    drop_table_stmt = 'DROP TABLE IF EXISTS {}.{}'.format(schema, table_name)
+
+    _ = rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
+    hive.run_lake_query(drop_table_stmt, engine='hive')
+    hive.run_lake_query(create_table_ddl, engine='hive')
 
 
 def __nuke_table(table_name, schema):
