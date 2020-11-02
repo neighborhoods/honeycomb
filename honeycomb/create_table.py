@@ -324,7 +324,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     when the table only consists of one underlying file
 
     Args:
-        df (pd.DataFrame): The DataFrame to create the tabale from.
+        df (pd.DataFrame): The DataFrame to create the table from.
         table_name (str): The name of the table to be created
         schema (str): The name of the schema to create the table in
         dtypes (dict<str:str>, optional): A dictionary specifying dtypes for
@@ -409,8 +409,8 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     print(create_table_ddl)
     drop_table_stmt = 'DROP TABLE IF EXISTS {}.{}'.format(schema, table_name)
 
-    hive.run_lake_query(drop_table_stmt, engine='hive')
     _ = rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
+    hive.run_lake_query(drop_table_stmt, engine='hive')
     hive.run_lake_query(create_table_ddl, engine='hive')
 
 
