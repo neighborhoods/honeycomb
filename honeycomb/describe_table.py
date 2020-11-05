@@ -1,5 +1,4 @@
-from honeycomb import meta
-from honeycomb import hive
+from honeycomb import hive, meta
 
 
 # Hive and Presto return 'DESCRIBE' queries differently, and
