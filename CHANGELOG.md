@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Partiion nuking functionality - use at your own risk
+- Checks around partition ordering
 
 ### Changed
 - Moved `__nuke_table` to `__danger.py`

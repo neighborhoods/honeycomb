@@ -74,6 +74,8 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
         path += '/'
 
     if partition_values:
+        partition_values = meta.confirm_ordered_partition_dicts(
+            partition_values)
         path += add_partition(table_name, schema, partition_values)
 
     path += filename

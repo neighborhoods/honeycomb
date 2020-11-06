@@ -42,8 +42,10 @@ def __nuke_partition(table_name, schema, partition_values):
     partition_string = ', '.join([
         '{}=\'{}\''.format(partition_key, partition_value)
         for partition_key, partition_value in partition_values.items()])
+    print('DESCRIBE FORMATTED {}.{} PARTITION ({})'.format(
+        schema, table_name, partition_string))
     partition_metadata = hive.run_lake_query(
-        'DESCRIBE FORMATTED {}.{} PARTITON ({})'.format(
+        'DESCRIBE FORMATTED {}.{} PARTITION ({})'.format(
             schema, table_name, partition_string),
         engine='hive'
     )

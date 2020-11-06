@@ -1,8 +1,6 @@
-from collections import OrderedDict
 import os
 import pprint
 import re
-import sys
 
 import pandavro as pdx
 import river as rv
@@ -140,23 +138,6 @@ def check_for_comments(table_comment, columns, col_comments):
             'comments: ' + ', '.join(cols_wo_comment))
 
 
-def confirm_ordered_dicts():
-    """
-    Checks if the Python version is at least 3.6, determining whether
-    dictionaries are ordered.
-    """
-    python_version = sys.version_info
-    if python_version.major >= 3:
-        if python_version.minor >= 6:
-            if python_version.minor == 6:
-                print(
-                    'You are using Python 3.6. Dictionaries are ordered in '
-                    '3.6, but only as a side effect. It is recommended to '
-                    'upgrade to 3.7 to have guaranteeably ordered dicts.')
-            return True
-    return False
-
-
 def create_table_from_df(df, table_name, schema=None,
                          dtypes=None, path=None, filename=None,
                          table_comment=None, col_comments=None,
@@ -216,18 +197,21 @@ def create_table_from_df(df, table_name, schema=None,
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
     if partitioned_by:
-        if isinstance(partitioned_by, dict) and not confirm_ordered_dicts():
-            raise TypeError(
-                'The order of "partitioned_by" must be preserved, and '
-                'dictionaries are not guaranteed to be order-preserving '
-                'in Python versions < 3.7. Use a list of tuples or an '
-                'OrderedDict, or upgrade your Python version.')
-        elif isinstance(partitioned_by, list):
-            partitioned_by = OrderedDict(partitioned_by)
-        if auto_upload_df and not partition_values:
-            raise ValueError(
-                'If using "partitioned_by" and "auto_upload_df" is True, '
-                'values must be passed to "partition_values" as well.')
+        partitioned_by = meta.confirm_ordered_partition_dicts(partitioned_by)
+
+        if not partition_values:
+            if auto_upload_df:
+                raise ValueError(
+                    'If using "partitioned_by" and "auto_upload_df" is True, '
+                    'values must be passed to "partition_values" as well.')
+        else:
+            partition_values = meta.confirm_ordered_partition_dicts(
+                partition_values)
+            if not partitioned_by.keys() == partition_values.keys():
+                raise ValueError(
+                    'The keys of "partitioned_by" and "partition_values" are '
+                    'either not equal or not in the same order. They must '
+                    'contain all of the same values, in the same order.')
 
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
