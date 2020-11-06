@@ -1,6 +1,4 @@
-from collections import OrderedDict
 from datetime import datetime
-import sys
 
 from honeycomb import hive
 from honeycomb.describe_table import describe_table
@@ -185,51 +183,3 @@ def is_partitioned_table(table_name, schema):
     if any(desc['col_name'] == '# Partition Information'):
         return True
     return False
-
-
-def get_partition_key_order(table_name, schema):
-    if not is_partitioned_table(table_name, schema):
-        raise ValueError('Table {}.{} is not partitioned.'.format(
-            schema, table_name))
-
-    table_desc = describe_table(table_name, schema)
-    partition_names_idx = table_desc.index[
-        table_desc['col_name'].str.strip() == '# Partition Information'
-    ].values[0] + 2
-    partition_names = table_desc.loc[partition_names_idx:, 'col_name']
-
-    return partition_names
-
-
-def confirm_ordered_partition_dicts(obj_to_check):
-    """
-    If "obj_to_check" is a vanilla dictionary, checks if the Python version
-    is at least 3.6, determining whether dictionaries are ordered.
-    """
-    if isinstance(obj_to_check, dict):
-        python_version = sys.version_info
-        if python_version.major >= 3:
-            if python_version.minor >= 6:
-                if python_version.minor == 6:
-                    print(
-                        'You are using Python 3.6. Dictionaries are ordered '
-                        'in 3.6, but only as a side effect. It is recommended '
-                        'to upgrade to 3.7 to have guaranteeably '
-                        'ordered dicts.')
-                confirmed = True
-        confirmed = False
-
-        if not confirmed:
-            raise TypeError(
-                'The order of partition dicts must be preserved, and '
-                'dictionaries are not guaranteed to be order-preserving '
-                'in Python versions < 3.7. Use a list of tuples or an '
-                'OrderedDict, or upgrade your Python version.')
-    elif isinstance(obj_to_check, list):
-        obj_to_check = OrderedDict(obj_to_check)
-    elif not isinstance(obj_to_check, OrderedDict):
-        raise TypeError(
-            'Partition data must be provided as a dict, a list of tuples, '
-            'or an OrderedDict.')
-
-    return obj_to_check
