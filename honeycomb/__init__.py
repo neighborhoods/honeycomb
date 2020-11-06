@@ -4,7 +4,7 @@ from .create_table import create_table_from_df, flash_update_table_from_df
 from .describe_table import describe_table
 from .meta import get_table_storage_type_from_metadata
 from . import alter_table, check
-from . import bigquery, salesforce
+from .extras import bigquery, salesforce
 
 
 __all__ = [
