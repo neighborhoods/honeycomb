@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.5] - 2020-10-29
+## [1.3.0] - 2020-11-06
+
+### Added
+- Partiion nuking functionality - use at your own risk
+- `run_gbq_query` can now accept credentials as an argument
+
+### Changed
+- Moved `__nuke_table` to `__danger.py`
+- Simplified import in `describe_table.py`
+- `bigquery` is now a package extra
+
+## [1.2.0] - 2020-10-29
 
 ### Added
 - Flash update functionality: Tables that are based on single files can be overwritten with minimal downtime.

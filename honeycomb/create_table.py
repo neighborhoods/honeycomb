@@ -9,6 +9,7 @@ import river as rv
 
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
+from honeycomb.__danger import __nuke_table
 
 
 schema_to_zone_bucket_map = {
@@ -412,25 +413,3 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     _ = rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
     hive.run_lake_query(drop_table_stmt, engine='hive')
     hive.run_lake_query(create_table_ddl, engine='hive')
-
-
-def __nuke_table(table_name, schema):
-    """
-    USE AT YOUR OWN RISK. THIS OPERATION IS NOT REVERSIBLE.
-
-    Drop a table from the lake metastore and completely remove all of its
-    underlying files from S3.
-
-    Args:
-        table_name (str): Name of the table to drop
-        schema (str): Schema the table is in
-    """
-    table_metadata = meta.get_table_metadata(table_name, schema)
-    current_bucket = table_metadata['bucket']
-    current_path = table_metadata['path']
-    hive.run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
-        schema,
-        table_name),
-        engine='hive'
-    )
-    rv.delete(current_path, current_bucket, recursive=True)
