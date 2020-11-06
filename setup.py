@@ -75,7 +75,7 @@ setup(
         'pandavro==1.5.100'  # Stored in nhds PyPi
     ],
     extras_require={
-        'bigquery':  ['google-auth = >=1.22'],
+        'bigquery':  ['google-auth>=1.22'],
         'salesforce': ['simple-salesforce>=1.1.0']
     },
     cmdclass={
