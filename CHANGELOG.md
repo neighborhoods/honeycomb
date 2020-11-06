@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Partiion nuking functionality - use at your own risk
+- `run_gbq_query` can now accept credentials as an argument
 
 ### Changed
 - Moved `__nuke_table` to `__danger.py`
 - Simplified import in `describe_table.py`
+- `bigquery` is now a package extra
 
 ## [1.2.0] - 2020-10-29
 
