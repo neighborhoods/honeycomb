@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2020-11-11
+
+### Changed
+- The generation of `SELECT *` query strings in the Salesforce module is now
+available as its own function.
+
 ## [1.3.0] - 2020-11-06
 
 ### Added
