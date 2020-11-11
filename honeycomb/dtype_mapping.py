@@ -288,7 +288,7 @@ def handle_struct_col(col):
     struct_dtypes = map_pd_to_db_dtypes(struct_df)
 
     dtype_str = 'STRUCT <{}>'.format(
-        ', '.join(['{}: {}'.format(col_name, col_type)
-                   for col_name, col_type in struct_dtypes.items()]))
+        ', '.join(['{}: {}'.format(row['col_name'], row['dtype'])
+                   for idx, row in struct_dtypes.iterrows()]))
 
     return dtype_str
