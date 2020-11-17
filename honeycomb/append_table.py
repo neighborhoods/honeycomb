@@ -7,7 +7,7 @@ from honeycomb.alter_table import add_partition
 def append_df_to_table(df, table_name, schema=None, dtypes=None,
                        filename=None, overwrite_file=False, timezones=None,
                        copy_df=True, partition_values=None,
-                       require_identical_columns=True):
+                       require_identical_columns=True, avro_schema=None):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -44,6 +44,9 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
         require_identical_columns (bool, default True):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
+        avro_schema (dict, optional):
+            Schema to use when writing a DataFrame to an Avro file. If not
+            provided, one will be auto-generated.
     """
     if copy_df:
         df = df.copy()
@@ -93,6 +96,8 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                                        require_identical_columns)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
+    if avro_schema is not None:
+        storage_settings['schema'] = avro_schema
     rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
 
 

@@ -162,7 +162,8 @@ def create_table_from_df(df, table_name, schema=None,
                          table_comment=None, col_comments=None,
                          timezones=None, copy_df=True,
                          partitioned_by=None, partition_values=None,
-                         overwrite=False, auto_upload_df=True):
+                         overwrite=False, auto_upload_df=True,
+                         avro_schema=None):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -209,6 +210,9 @@ def create_table_from_df(df, table_name, schema=None,
         auto_upload_df (bool, default True):
             Whether the df that the table's structure will be based off of
             should be automatically uploaded to the table
+        avro_schema (dict, optional):
+            Schema to use when writing a DataFrame to an Avro file. If not
+            provided, one will be auto-generated.
     """
     if copy_df:
         df = df.copy()
@@ -272,7 +276,7 @@ def create_table_from_df(df, table_name, schema=None,
     tblproperties = {}
     if storage_type == 'avro':
         storage_settings, tblproperties = handle_avro_filetype(
-            df, storage_settings, tblproperties)
+            df, storage_settings, tblproperties, avro_schema)
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema,
@@ -306,8 +310,9 @@ def prep_df_and_col_defs(df, dtypes, timezones, schema,
     return df, col_defs
 
 
-def handle_avro_filetype(df, storage_settings, tblproperties):
-    avro_schema = pdx.schema_infer(df)
+def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
+    if avro_schema is None:
+        avro_schema = pdx.schema_infer(df)
     tblproperties['avro.schema.literal'] = pprint.pformat(
         avro_schema).replace('\'', '"')
     # So pandavro doesn't have to infer the schema a second time

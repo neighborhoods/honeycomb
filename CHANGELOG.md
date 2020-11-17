@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2020-11-11
+
+### Added
+- Table creation and appending can now make use of a pre-created Avro schema
+
 ## [1.3.1] - 2020-11-11
 
 ### Changed
