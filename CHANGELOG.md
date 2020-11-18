@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3] - 2020-11-11
+
+### Added
+- Added `pandas-gbq` to the requirements for the `bigquery` module - as it always should have been
+
 ## [1.3.2] - 2020-11-11
 
 ### Added
