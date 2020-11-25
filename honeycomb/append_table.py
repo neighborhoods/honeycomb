@@ -135,7 +135,7 @@ def reorder_columns_for_appending(df, table_name, schema,
     # on lowercase DataFrame columns as well
     df_col_order = df.columns.str.lower()
 
-    lower_to_orig_col_map = {zip(df_col_order, df.columns)}
+    lower_to_orig_col_map = dict(zip(df_col_order, df.columns))
     if sorted(table_col_order) == sorted(df_col_order):
         mapped_col_order = [lower_to_orig_col_map[col]
                             for col in table_col_order]
