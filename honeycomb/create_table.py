@@ -301,7 +301,6 @@ def get_storage_type_from_filename(filename):
 
 def prep_df_and_col_defs(df, dtypes, timezones, schema,
                          storage_type, col_comments):
-    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
 
