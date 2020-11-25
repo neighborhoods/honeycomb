@@ -117,7 +117,7 @@ def apply_spec_dtypes(df, spec_dtypes):
     """
     if spec_dtypes is not None:
         for col_name, new_dtype in spec_dtypes.items():
-            if col_name not in df.dtypes.keys():
+            if col_name.lower() not in df.dtypes.str.lower().keys():
                 raise KeyError('Additional dtype casting failed: '
                                '\'{col_name}\' not in DataFrame.'.format(
                                    col_name=col_name))

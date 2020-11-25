@@ -132,6 +132,11 @@ def reorder_columns_for_appending(df, table_name, schema,
             if they should lead to an error being raised.
     """
     table_col_order = meta.get_table_column_order(table_name, schema)
+    # df_col_order = df.columns.str.lower()
+    #
+    # lower_to_orig_col_map = {zip(df_col_order, df.columns)}
+    # if sorted(table_col_order) == sorted(df_col_order):
+    #     return df[table_col_order]
     if sorted(table_col_order) == sorted(df.columns):
         return df[table_col_order]
 
