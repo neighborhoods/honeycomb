@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.3.4] - 2020-11-11
+## [1.3.4] - 2020-11-25
 
 ### Changed
 - Default query engine for `run_lake_query` changed to `'hive'` from `'presto'`
@@ -16,12 +16,12 @@ was originally done to match the fact that `hive` queries expect all lowercase
 field names, but in practice this ended up causing issues when comparing
 files uploaded to the lake with their original sources.
 
-## [1.3.3] - 2020-11-11
+## [1.3.3] - 2020-11-18
 
 ### Added
 - Added `pandas-gbq` to the requirements for the `bigquery` module - as it always should have been
 
-## [1.3.2] - 2020-11-11
+## [1.3.2] - 2020-11-17
 
 ### Added
 - Table creation and appending can now make use of a pre-created Avro schema
