@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 was originally done to match the fact that `hive` queries expect all lowercase
 field names, but in practice this ended up causing issues when comparing
 files uploaded to the lake with their original sources.
+- DDL generated within `create_table_from_df` is now case-insensitive to `hive`
+reserved words. If a DataFrame is being uploaded with a column named the same as
+a `hive` reserved word, it will be wrapped in backticks regardless of case.
 
 ## [1.3.3] - 2020-11-18
 

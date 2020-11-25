@@ -39,7 +39,8 @@ def build_create_table_ddl(table_name, schema, col_defs,
     columns_and_types = re.sub(
         r'(?<=\s|,)({})(?=\:| )'.format('|'.join(meta.hive_reserved_words)),
         lambda x: '`{}`'.format(x[0]),
-        columns_and_types
+        columns_and_types,
+        flags=re.IGNORECASE
     )
 
     # Removing excess whitespace left by df.to_string()
