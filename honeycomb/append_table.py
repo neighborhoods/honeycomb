@@ -126,6 +126,11 @@ def reorder_columns_for_appending(df, table_name, schema,
             List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
             it will be created.
+        storage_type (str):
+            The file type the data will be saved to.
+            Avro requires identical columns between the table and the DataFrame
+            to be uploaded, so a value of 'avro' will override
+            require_identical_columns=False
         require_identical_columns (bool):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.

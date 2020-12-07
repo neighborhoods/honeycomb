@@ -35,8 +35,6 @@ storage_type_specs = {
     }
 }
 
-hive_reserved_words = ['date', 'time', 'timestamp', 'datetime']
-
 
 def prep_schema_and_table(table, schema):
     if schema is None:

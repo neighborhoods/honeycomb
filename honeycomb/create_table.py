@@ -35,14 +35,6 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            tblproperties=None):
     columns_and_types = col_defs.to_string(header=False, index=False)
 
-    # Wrapping any column names that are reserved words in '`' characters
-    columns_and_types = re.sub(
-        r'(?<=\s|,)({})(?=\:| )'.format('|'.join(meta.hive_reserved_words)),
-        lambda x: '`{}`'.format(x[0]),
-        columns_and_types,
-        flags=re.IGNORECASE
-    )
-
     # Removing excess whitespace left by df.to_string()
     columns_and_types = re.sub(
         r' +',
