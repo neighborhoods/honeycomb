@@ -1,9 +1,6 @@
 from honeycomb import hive, meta
 
 
-# Hive and Presto return 'DESCRIBE' queries differently, and
-# Presto does not support the 'FORMATTED' keyword, so
-# we're locking the engine for 'DESCRIBE' queries to Hive for now
 def describe_table(table_name, schema=None,
                    include_metadata=False):
     """
@@ -18,12 +15,13 @@ def describe_table(table_name, schema=None,
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
-    engine = 'hive'
+    # Presto does not support the 'FORMATTED' keyword, so
+    # we're locking the engine for 'DESCRIBE' queries to Hive
     desc_query = 'DESCRIBE {formatted}{schema}.{table_name}'.format(
         formatted=('FORMATTED ' if include_metadata else ''),
         schema=schema,
         table_name=table_name)
-    desc = hive.run_lake_query(desc_query, engine)
+    desc = hive.run_lake_query(desc_query, engine='hive')
 
     if include_metadata:
         desc = desc.loc[1:].reset_index(drop=True)

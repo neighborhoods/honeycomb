@@ -5,7 +5,7 @@ import pandas as pd
 from honeycomb.connection import get_db_connection
 
 
-def run_lake_query(query, engine='presto'):
+def run_lake_query(query, engine='hive'):
     """
     General wrapper function around querying with different engines
 

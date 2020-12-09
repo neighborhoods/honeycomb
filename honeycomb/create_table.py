@@ -35,13 +35,6 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            tblproperties=None):
     columns_and_types = col_defs.to_string(header=False, index=False)
 
-    # Wrapping any column names that are reserved words in '`' characters
-    columns_and_types = re.sub(
-        r'(?<=\s|,)({})(?=\:| )'.format('|'.join(meta.hive_reserved_words)),
-        lambda x: '`{}`'.format(x[0]),
-        columns_and_types
-    )
-
     # Removing excess whitespace left by df.to_string()
     columns_and_types = re.sub(
         r' +',
@@ -301,7 +294,6 @@ def get_storage_type_from_filename(filename):
 
 def prep_df_and_col_defs(df, dtypes, timezones, schema,
                          storage_type, col_comments):
-    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
 

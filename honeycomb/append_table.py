@@ -88,11 +88,10 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                            bucket, path
                        ))
 
-    df.columns = df.columns.str.lower()
     df = dtype_mapping.special_dtype_handling(
         df, spec_dtypes=dtypes, spec_timezones=timezones, schema=schema)
     df = reorder_columns_for_appending(df, table_name, schema,
-                                       partition_values,
+                                       partition_values, storage_type,
                                        require_identical_columns)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
@@ -102,7 +101,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
 
 
 def reorder_columns_for_appending(df, table_name, schema,
-                                  partition_values,
+                                  partition_values, storage_type,
                                   require_identical_columns):
     """
     Serialized formats such as Parquet don't necessarily have to worry
@@ -127,32 +126,56 @@ def reorder_columns_for_appending(df, table_name, schema,
             List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
             it will be created.
+        storage_type (str):
+            The file type the data will be saved to.
+            Avro requires identical columns between the table and the DataFrame
+            to be uploaded, so a value of 'avro' will override
+            require_identical_columns=False
         require_identical_columns (bool):
             Whether extra/missing columns should be allowed and handled, or
             if they should lead to an error being raised.
     """
     table_col_order = meta.get_table_column_order(table_name, schema)
-    if sorted(table_col_order) == sorted(df.columns):
-        return df[table_col_order]
+    # Hive returns column names as all lowercase, so we have to compare based
+    # on lowercase DataFrame columns as well
+    df_col_order = df.columns.str.lower()
+
+    lower_to_orig_col_map = dict(zip(df_col_order, df.columns))
+    if sorted(table_col_order) == sorted(df_col_order):
+        mapped_col_order = [lower_to_orig_col_map[col]
+                            for col in table_col_order]
+        return df[mapped_col_order]
 
     elif not require_identical_columns:
+        if storage_type == 'avro':
+            raise ValueError(
+                'Identical columns are always required when appending to an '
+                'avro file-based table.')
         cols_missing_from_df = [col for col in table_col_order
-                                if col not in df.columns]
+                                if col not in df_col_order]
         df = df.assign(**{col: None for col in cols_missing_from_df})
 
-        extra_cols_in_df = [col for col in df.columns
+        extra_cols_in_df = [col for col in df_col_order
                             if col not in table_col_order]
 
-        new_df_col_order = table_col_order + extra_cols_in_df
+        mapped_col_order = [lower_to_orig_col_map[col]
+                            for col in table_col_order
+                            if col in lower_to_orig_col_map]
+
+        new_df_col_order = mapped_col_order + extra_cols_in_df
         return df[new_df_col_order]
     else:
-        in_table_not_df = set(table_col_order).difference(set(df.columns))
-        in_df_not_table = set(df.columns).difference(set(table_col_order))
+        in_table_not_df = set(table_col_order).difference(set(df_col_order))
+        in_df_not_table = set(df_col_order).difference(set(table_col_order))
+        mapped_in_df_not_table = [lower_to_orig_col_map[col]
+                                  for col in in_df_not_table]
         raise ValueError(
             'The provided dataframe\'s columns do not match '
             'the columns of the table. To ignore this and '
             'proceed anyway, set "require_identical_columns" '
             'to False.\n'
+            'Remember: column names returned by hive will be lowercase, but '
+            'the column names in your DataFrame do not have to be.\n'
             'Columns in table, but not dataframe: {}\n'
             'Columns in dataframe, but not table: {}'
-            .format(in_table_not_df, in_df_not_table))
+            .format(in_table_not_df, mapped_in_df_not_table))
