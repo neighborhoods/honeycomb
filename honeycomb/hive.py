@@ -48,10 +48,11 @@ def _hive_query(query, addr):
         with get_db_connection('hive', addr=addr, cursor=False) as conn:
             df = pd.read_sql(query, conn)
             if 'join' not in query.lower():
-                # Cleans table prefixes from column names,
+                # Cleans table prefixes from all column names,
                 # which are added by Hive even in non-join queries
                 df.columns = df.columns.str.replace(col_prefix_regex, '')
             else:
+                # Cleans table prefixes from any non-duplicated column names
                 cols_wo_prefix = df.columns.str.replace(col_prefix_regex, '')
                 duplicated_cols = cols_wo_prefix.duplicated(keep=False)
                 cols_to_rename = dict(zip(df.columns[~duplicated_cols],
