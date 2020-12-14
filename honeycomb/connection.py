@@ -21,7 +21,7 @@ def get_db_connection(engine='hive', addr='localhost', cursor=True):
     else:
         raise ValueError('Specified engine is not supported: ' + engine)
 
-    conn = engine_module.connect(addr, port=port)
+    conn = engine_module.connect(addr, port=port, username='hadoop')
     if cursor:
         conn = conn.cursor()
     return conn
