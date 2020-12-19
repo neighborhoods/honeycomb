@@ -29,10 +29,138 @@ def add_comments_to_col_defs(col_defs, comments):
     return col_defs
 
 
+def add_nested_col_comments(columns_and_types, nested_col_comments):
+    print(columns_and_types)
+    for col, comment in nested_col_comments.items():
+        print(col)
+        total_nesting_levels = col.count('.')
+        current_nesting_level = 0
+        block_start = 0
+        block_end = -1
+        columns_and_types = scan_ddl_level(col, comment, columns_and_types,
+                                           block_start, block_end,
+                                           current_nesting_level,
+                                           total_nesting_levels)
+    return columns_and_types
+
+
+def scan_ddl_level(col, comment, columns_and_types,
+                   block_start, block_end,
+                   current_nesting_level, total_nesting_levels,):
+    found = False
+    while not found:
+        col_at_level = col.split('.')[current_nesting_level]
+        block_end = columns_and_types.find('<', block_start, block_end)
+        next_block_start = find_matching_bracket(
+            columns_and_types, block_end) + 1
+
+        # TODO replace with regex
+        if col_at_level in columns_and_types[block_start:block_end]:
+            found = True
+
+            if current_nesting_level == total_nesting_levels:
+                print('hallo')
+                col_loc = columns_and_types.find(col_at_level)
+                def_end_idx = min(idx for idx in
+                                  [
+                                      columns_and_types[col_loc:].find(','),
+                                      columns_and_types[col_loc:].find('>'),
+                                      columns_and_types[col_loc:].find('\n')]
+                                  if idx >= 0
+                                  )
+                col_def_end = col_loc + def_end_idx
+
+                print(col_loc)
+                print(col_def_end)
+                print(columns_and_types[col_loc:col_def_end])
+                columns_and_types = (columns_and_types[:col_def_end] +
+                                     ' COMMENT \'{}\''.format(comment) +
+                                     columns_and_types[col_def_end:])
+                print(columns_and_types)
+                return columns_and_types
+            else:
+                # TODO account for arrays of struct
+                current_nesting_level += 1
+                # Searching between the brackets that follow the just found col
+                return scan_ddl_level(
+                    col, comment, columns_and_types,
+                    block_start=block_end + 1,
+                    block_end=next_block_start - 1,
+                    current_nesting_level=current_nesting_level,
+                    total_nesting_levels=total_nesting_levels
+                )
+        else:
+            if next_block_start != 0:
+                block_start = next_block_start
+                block_end = -1
+            else:
+                raise ValueError(
+                    'Sub-field {} not found in definition for {}'.format(
+                        col_at_level,
+                        col
+                    ))
+
+    # col_types = describe_table(table_name, schema).set_index('col_name')
+    # for col_name, comment in nested_col_comments.items():
+    #     nesting_layers = col_name.count('.')
+    #     top_level_field = col_name.split('.')[0]
+    #     col_type = col_types.loc[top_level_field, 'data_type']
+    #
+    #     array_of_struct = 'array<struct<'
+    #     array = 'array<'
+    #     struct = 'struct<'
+    #     for i in range(0, nesting_layers):
+    #         if isinstance(col_type, str):
+    #             if col_type.startswith(array_of_struct):
+    #                 col_type = col_type[len(array_of_struct):-2]
+    #                 col_type = col_type_str_to_dict(col_type)
+    #             elif col_type.startswith(array):
+    #                 col_type = col_type[len(array):-1]
+    #             elif col_type.startswith(struct):
+    #                 col_type = col_type[len(struct):-1]
+    #         if isinstance(col_type, dict):
+    #             current_level = col_name.split('.')[i + 1]
+    #             col_type = col_type[current_level]
+    #
+    # #     add_comment_command = (
+    #         'ALTER TABLE {}.{} CHANGE `{}` `{}` {} COMMENT \'{}\''.format(
+    #             schema,
+    #             table_name,
+    #             col_name,
+    #             col_name,
+    #             col_type,
+    #             comment
+    #         ))
+    #     print(add_comment_command)
+    #     hive.run_lake_query(add_comment_command, engine='hive')
+
+
+def find_matching_bracket(columns_and_types, start_ind):
+    bracket_count = 0
+    for i, c in enumerate(columns_and_types[start_ind:]):
+        if c == '<':
+            bracket_count += 1
+        elif c == '>':
+            bracket_count -= 1
+        if bracket_count == 0:
+            return i + start_ind
+
+
+def col_type_str_to_dict(col_type):
+    return {field.split(':')[0]: field.split(':')[1]
+            for field in col_type.split(',')}
+
+
 def build_create_table_ddl(table_name, schema, col_defs,
-                           table_comment, storage_type,
+                           col_comments, table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
+    nested_col_comments = {key: value for key, value in col_comments.items()
+                           if '.' in key}
+    col_comments = {key: value for key, value in col_comments.items()
+                    if '.' not in key}
+    if col_comments is not None:
+        col_defs = add_comments_to_col_defs(col_defs, col_comments)
     columns_and_types = col_defs.to_string(header=False, index=False)
 
     # Removing excess whitespace left by df.to_string()
@@ -43,6 +171,10 @@ def build_create_table_ddl(table_name, schema, col_defs,
     )
 
     columns_and_types = columns_and_types.replace('\n', ',\n    ')
+
+    if nested_col_comments:
+        columns_and_types = add_nested_col_comments(
+            columns_and_types, nested_col_comments)
 
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
@@ -262,7 +394,7 @@ def create_table_from_df(df, table_name, schema=None,
 
     storage_type = get_storage_type_from_filename(filename)
     df, col_defs = prep_df_and_col_defs(
-        df, dtypes, timezones, schema, storage_type, col_comments)
+        df, dtypes, timezones, schema, storage_type)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 
@@ -273,7 +405,8 @@ def create_table_from_df(df, table_name, schema=None,
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema,
-                                              col_defs, table_comment,
+                                              col_defs,
+                                              col_comments, table_comment,
                                               storage_type, partitioned_by,
                                               full_path, tblproperties)
     print(create_table_ddl)
@@ -293,12 +426,9 @@ def get_storage_type_from_filename(filename):
 
 
 def prep_df_and_col_defs(df, dtypes, timezones, schema,
-                         storage_type, col_comments):
+                         storage_type):
     df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
-
-    if col_comments is not None:
-        col_defs = add_comments_to_col_defs(col_defs, col_comments)
     return df, col_defs
 
 
