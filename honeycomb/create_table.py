@@ -59,24 +59,18 @@ def scan_ddl_level(col, comment, columns_and_types,
             found = True
 
             if current_nesting_level == total_nesting_levels:
-                print('hallo')
                 col_loc = columns_and_types.find(col_at_level)
-                def_end_idx = min(idx for idx in
-                                  [
-                                      columns_and_types[col_loc:].find(','),
-                                      columns_and_types[col_loc:].find('>'),
-                                      columns_and_types[col_loc:].find('\n')]
-                                  if idx >= 0
-                                  )
-                col_def_end = col_loc + def_end_idx
+                col_def_end = col_loc + min(
+                    idx for idx in [
+                        columns_and_types[col_loc:].find(','),
+                        columns_and_types[col_loc:].find('>'),
+                        columns_and_types[col_loc:].find('\n')
+                    ]
+                    if idx >= 0)
 
-                print(col_loc)
-                print(col_def_end)
-                print(columns_and_types[col_loc:col_def_end])
                 columns_and_types = (columns_and_types[:col_def_end] +
                                      ' COMMENT \'{}\''.format(comment) +
                                      columns_and_types[col_def_end:])
-                print(columns_and_types)
                 return columns_and_types
             else:
                 # TODO account for arrays of struct
