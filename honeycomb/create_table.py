@@ -47,6 +47,8 @@ def build_create_table_ddl(table_name, schema, col_defs,
                         if '.' not in key}
 
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
+    else:
+        nested_col_comments = None
 
     col_defs = col_defs.to_string(header=False, index=False)
 
