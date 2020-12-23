@@ -327,9 +327,7 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
 
 
 def add_nested_col_comments(columns_and_types, nested_col_comments):
-    print(columns_and_types)
     for col, comment in nested_col_comments.items():
-        print(col)
         # How many layers deep we need to go to add a comment
         total_nesting_levels = col.count('.')
         current_nesting_level = 0
@@ -345,7 +343,8 @@ def add_nested_col_comments(columns_and_types, nested_col_comments):
 def scan_ddl_level(col, comment, columns_and_types,
                    level_block_start, level_block_end,
                    current_nesting_level, total_nesting_levels,):
-    while True:
+    next_level_exists = True
+    while next_level_exists:
         col_at_level = col.split('.')[current_nesting_level]
         col_at_level = re.escape(col_at_level)
 
@@ -359,50 +358,58 @@ def scan_ddl_level(col, comment, columns_and_types,
             # AKA, the start level of the next block of the current level
             next_level_block_end = find_matching_bracket(
                 columns_and_types, next_level_block_start)
+        else:
+            next_level_exists = False
+            next_level_block_start = level_block_end + 1
+            next_level_block_end = -1
 
         match = re.search(
-            r'[\s*|,]{}:'.format(col_at_level),
+            r'(?:^|\s*|,)({}[: ])'.format(col_at_level),
             columns_and_types[level_block_start:next_level_block_start])
 
         if match:
-            col_loc = match.start()
+            col_loc = match.start(1) + level_block_start
             return handle_nested_col_match(col, comment, col_at_level, col_loc,
                                            columns_and_types,
+                                           next_level_block_start,
+                                           next_level_block_end,
                                            current_nesting_level,
                                            total_nesting_levels)
 
-        # No match, no additional blocks on current level to search
-        elif next_level_block_start < 0:
-            raise ValueError(
-                'Sub-field {} not found in definition for {}'.format(
-                    col_at_level,
-                    col
-                ))
         # No match, but there is another block on the current level to search
         else:
             level_block_start = next_level_block_end + 1
 
+    # No match, no additional blocks on current level to search
+    raise ValueError(
+        'Sub-field {} not found in definition for {}'.format(
+            col_at_level,
+            col
+        ))
+
 
 def handle_nested_col_match(col, comment, col_at_level, col_loc,
                             columns_and_types,
+                            next_level_block_start, next_level_block_end,
                             current_nesting_level, total_nesting_levels):
     if current_nesting_level == total_nesting_levels:
         # Matching an array OR a struct
         array_or_struct = re.search(
-            r'(?:{}:\s*[ARRAY|STRUCT]\s*)(<)'.format(col_at_level),
+            r'(?:{}[: ]\s*(?:ARRAY|STRUCT)\s*)(<)'.format(col_at_level),
             columns_and_types[col_loc:])
         # Array/struct columns need their comments applied
         # outside the brackets, rather than within
         if array_or_struct:
+            col_start_bracket_loc = array_or_struct.start(1) + col_loc
             end_of_complex_field = find_matching_bracket(
                 columns_and_types,
-                array_or_struct.start(1))
+                col_start_bracket_loc)
             col_def_end = end_of_complex_field + 1
         else:
             col_end_match = re.search(
                 r'(?:{}:\s*\w*\s*)([,>\n])'.format(col_at_level),
                 columns_and_types[col_loc:])
-            col_def_end = col_end_match.start(1)
+            col_def_end = col_end_match.start(1) + col_loc
 
         columns_and_types = (columns_and_types[:col_def_end] +
                              ' COMMENT \'{}\''.format(comment) +
@@ -413,13 +420,13 @@ def handle_nested_col_match(col, comment, col_at_level, col_loc,
 
         # Matching an array OF a struct
         array_of_struct = re.search(
-            r'(?:{}:\s*ARRAY\s*<\s*STRUCT\s*)(<)'.format(col_at_level),
+            r'(?:{}[: ]\s*ARRAY\s*<\s*STRUCT\s*)(<)'.format(col_at_level),
             columns_and_types[col_loc:])
 
         # Structs within arrays do not have names, and should not be
         # commented. So, we skip to the next level of nesting
         if array_of_struct:
-            next_level_block_start = array_of_struct.start(1)
+            next_level_block_start = array_of_struct.start(1) + col_loc
             next_level_block_end = find_matching_bracket(
                 columns_and_types, next_level_block_start)
 
