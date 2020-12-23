@@ -7,6 +7,37 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            col_comments, table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
+    """
+    Assembles the CREATE TABLE statement for the DataFrame being uploaded.
+
+    Args:
+        table_name (str):
+            The name of the table to be created
+        schema (str):
+            The schema the table is being created within
+        col_defs (pd.DataFrame)
+            A DataFrame containing the columns 'col_name' and 'dtype',
+            describing the dtype of each column in the DataFrame being uploaded
+        col_comments (dict<str:str>):
+            A mapping from column names to column comments to be applied
+            in the create statement
+        table_comment (str):
+            A table comment to be applied in the create statement
+        storage_type (str):
+            The underlying file type that the table will be based upon
+        partitioned_by (dict<str:str>)
+            A mapping from a partition key to the dtype of the
+            partition values
+        full_path (str):
+            The full S3 path that the tables files will be stored at -
+            not including the S3 prefix.
+        tblproperties (str, optional):
+            Any arguments or configurations to be provided in the TBLPROPERTIES
+            section of the create table statement.
+
+    Returns
+        str: The assembled create table statement.
+    """
     if col_comments is not None:
         nested_col_comments = {key: value for key, value
                                in col_comments.items()
@@ -63,8 +94,23 @@ LOCATION 's3://{full_path}'{tblproperties}
     return create_table_ddl
 
 
-def add_comments_to_col_defs(col_defs, comments):
-    for column, comment in comments.items():
+def add_comments_to_col_defs(col_defs, col_comments):
+    """
+    Iterates through a mapping from col names to comments, and adds the
+    comments to a new column on matching col names
+
+    Args:
+        col_defs (pd.DataFrame)
+            A DataFrame containing the columns 'col_name' and 'dtype',
+            describing the dtype of each column in the DataFrame being uploaded
+        col_comments (dict<str:str>):
+            A mapping from column names to column comments to be applied
+            in the create statement
+
+    Returns:
+        pd.DataFrame: col_defs with a 'comment' column appended and populated
+    """
+    for column, comment in col_comments.items():
         col_defs.loc[col_defs['col_name'] == column, 'comment'] = comment
 
     col_defs['comment'] = (
@@ -73,6 +119,22 @@ def add_comments_to_col_defs(col_defs, comments):
 
 
 def add_nested_col_comments(col_defs, nested_col_comments):
+    """
+    Adds nested column comments to the fully formatted column
+    definition section of the create table statement. Nested column comments
+    must be handled quite differently, and the least intrusive method of doing
+    so is to parse and iterate through the otherwise completed DDL
+
+    Args:
+        col_defs (str)
+            The fully formatted, translated-from-dataframe column definition
+            section of a DDL statement.
+        nested_col_comments (dict<str:str>):
+            A mapping from nested column names to column comments to be applied
+            in the create statement
+    Returns:
+        str: The create table statement with nested column comments added
+    """
     for col, comment in nested_col_comments.items():
         # How many layers deep we need to go to add a comment
         total_nesting_levels = col.count('.')
@@ -88,7 +150,56 @@ def add_nested_col_comments(col_defs, nested_col_comments):
 
 def scan_ddl_level(col, comment, col_defs,
                    level_block_start, level_block_end,
-                   current_nesting_level, total_nesting_levels,):
+                   current_nesting_level, total_nesting_levels):
+    """
+    Scans through a 'level' of DDL in the column definitions of a create
+    table statement. A 'level', in this case, represents an indentation
+    level in a properly formatted SQL string. So, a level includes all columns
+    and their types UNLESS a column is a contains structs or arrays of structs.
+    In that case, the nested fields constitute their own level, and are
+    not included in the original level.
+
+    This function operates on 'blocks' at a time. A 'block', in this case,
+    represents a section of col_defs that does not contain any definitions
+    of nested fields. If a level is being scanned and nested field definitions
+    are found, the function scans until the nested definition begins (AKA
+    where the first 'block' ends), and then resume after the nested definition
+    ends (where the next 'block' begins).
+
+    If a deeper level of nesting is encountered while scanning and the
+    column we're searching for is supposed to be in a deeper layer, a scan
+    of that encountered deeper level will automatically begin (if all
+    prerequisite parent column matches have been satisfied).
+
+    Args:
+        col (str):
+            The full name of the column definition being searched for,
+            including parent column names in the prefix.
+        comment (str):
+            The comment to be added to the column being searched for
+        col_defs (str):
+            The fully formatted, translated-from-dataframe column definition
+            section of a DDL statement.
+        level_block_start (int):
+            Index of col_defs that the current block starts at
+        level_block_end (int):
+            Index of col_defs that the current block ends at
+        current_nesting_level (int):
+            The level of nesting currently being scanned through. If
+            current_nesting_level == total_nesting_levels, we have reached
+            the desired level of nesting to find the column to add a comment to
+        total_nesting_levels (int):
+            How many levels of nesting are required to scan to find the
+            column definition being serached for. Determined by how many '.'
+            characters are in 'col'
+
+    Returns:
+        str: col_defs with the nested column comment for col inserted
+
+    Raises:
+        ValueError:
+            If a definition for a col or one of its sub-fields was not found
+    """
     next_level_exists = True
     while next_level_exists:
         col_at_level = col.split('.')[current_nesting_level]
@@ -138,6 +249,37 @@ def handle_nested_col_match(col, comment, col_at_level, col_loc,
                             col_defs,
                             next_level_block_start, next_level_block_end,
                             current_nesting_level, total_nesting_levels):
+    """
+    Determines next actions when a match is found for col_at_level. If
+    we have reached the desired level of nesting, insert the comment. If we
+    haven't reached the desired level of nesting yet, then begin searching
+    the next level - as long as it's been properly defined.
+
+    Args:
+        col (str):
+            The full name of the column definition being searched for,
+            including parent column names in the prefix.
+        comment (str):
+            The comment to be added to the column being searched for
+        col_loc (int):
+            Index of col_defs that the defintion of col begins at
+        col_defs (str):
+            The fully formatted, translated-from-dataframe column definition
+            section of a DDL statement.
+        next_level_block_start (int):
+            Index of col_defs that the first block of the next level starts at
+        next_level_block_end (int):
+            Index of col_defs that the first block block of the next level
+            ends at
+        current_nesting_level (int):
+            The level of nesting currently being scanned through. If
+            current_nesting_level == total_nesting_levels, we have reached
+            the desired level of nesting to find the column to add a comment to
+        total_nesting_levels (int):
+            How many levels of nesting are required to scan to find the
+            column definition being serached for. Determined by how many '.'
+            characters are in 'col'
+    """
     if current_nesting_level == total_nesting_levels:
         # Matching an array OR a struct
         array_or_struct = re.search(
@@ -188,6 +330,17 @@ def handle_nested_col_match(col, comment, col_at_level, col_loc,
 
 
 def find_matching_bracket(col_defs, start_ind):
+    """
+    Given a starting index, this finds the index of the matching
+    bracket of the highest-level bracket in the string (AKA the first
+    one encountered)
+
+    Args:
+        col_defs (str):
+            The fully formatted, translated-from-dataframe column definition
+            section of a DDL statement.
+        start_ind (int): The index to start searching from in col_defs
+    """
     bracket_count = 0
     for i, c in enumerate(col_defs[start_ind:]):
         if c == '<':
