@@ -29,11 +29,6 @@ def add_comments_to_col_defs(col_defs, comments):
     return col_defs
 
 
-def col_type_str_to_dict(col_type):
-    return {field.split(':')[0]: field.split(':')[1]
-            for field in col_type.split(',')}
-
-
 def build_create_table_ddl(table_name, schema, col_defs,
                            col_comments, table_comment, storage_type,
                            partitioned_by, full_path,
