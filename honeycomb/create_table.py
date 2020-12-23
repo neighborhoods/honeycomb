@@ -38,30 +38,34 @@ def build_create_table_ddl(table_name, schema, col_defs,
                            col_comments, table_comment, storage_type,
                            partitioned_by, full_path,
                            tblproperties=None):
-    nested_col_comments = {key: value for key, value in col_comments.items()
-                           if '.' in key}
-    col_comments = {key: value for key, value in col_comments.items()
-                    if '.' not in key}
     if col_comments is not None:
+        nested_col_comments = {key: value for key, value
+                               in col_comments.items()
+                               if '.' in key}
+        col_comments = {key: value for key, value
+                        in col_comments.items()
+                        if '.' not in key}
+
         col_defs = add_comments_to_col_defs(col_defs, col_comments)
-    columns_and_types = col_defs.to_string(header=False, index=False)
+
+    col_defs = col_defs.to_string(header=False, index=False)
 
     # Removing excess whitespace left by df.to_string()
-    columns_and_types = re.sub(
+    col_defs = re.sub(
         r' +',
         ' ',
-        columns_and_types
+        col_defs
     )
 
-    columns_and_types = columns_and_types.replace('\n', ',\n    ')
+    col_defs = col_defs.replace('\n', ',\n    ')
 
     if nested_col_comments:
-        columns_and_types = add_nested_col_comments(
-            columns_and_types, nested_col_comments)
+        col_defs = add_nested_col_comments(
+            col_defs, nested_col_comments)
 
     create_table_ddl = """
 CREATE EXTERNAL TABLE {schema}.{table_name} (
-    {columns_and_types}
+    {col_defs}
 ){table_comment}{partitioned_by}
 {storage_format_ddl}
 LOCATION 's3://{full_path}'{tblproperties}
@@ -70,7 +74,7 @@ LOCATION 's3://{full_path}'{tblproperties}
         table_name=table_name,
         # BUG: pd.Series truncates long strings output by to_string,
         # have to cast to DataFrame first.
-        columns_and_types=columns_and_types,
+        col_defs=col_defs,
         table_comment=('\nCOMMENT \'{table_comment}\''.format(
             table_comment=table_comment)) if table_comment else '',
         partitioned_by=('\nPARTITIONED BY ({})'.format(', '.join(
@@ -326,21 +330,21 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
     return storage_settings, tblproperties
 
 
-def add_nested_col_comments(columns_and_types, nested_col_comments):
+def add_nested_col_comments(col_defs, nested_col_comments):
     for col, comment in nested_col_comments.items():
         # How many layers deep we need to go to add a comment
         total_nesting_levels = col.count('.')
         current_nesting_level = 0
         block_start = 0
         block_end = -1
-        columns_and_types = scan_ddl_level(col, comment, columns_and_types,
-                                           block_start, block_end,
-                                           current_nesting_level,
-                                           total_nesting_levels)
-    return columns_and_types
+        col_defs = scan_ddl_level(col, comment, col_defs,
+                                  block_start, block_end,
+                                  current_nesting_level,
+                                  total_nesting_levels)
+    return col_defs
 
 
-def scan_ddl_level(col, comment, columns_and_types,
+def scan_ddl_level(col, comment, col_defs,
                    level_block_start, level_block_end,
                    current_nesting_level, total_nesting_levels,):
     next_level_exists = True
@@ -350,14 +354,14 @@ def scan_ddl_level(col, comment, columns_and_types,
 
         # Where the first block of the next level of nesting begins
         # AKA, the end of the current block of the current level
-        next_level_block_start = columns_and_types.find(
+        next_level_block_start = col_defs.find(
             '<', level_block_start, level_block_end)
 
         if next_level_block_start >= 0:
             # Where the first block of the next level ends
             # AKA, the start level of the next block of the current level
             next_level_block_end = find_matching_bracket(
-                columns_and_types, next_level_block_start)
+                col_defs, next_level_block_start)
         else:
             next_level_exists = False
             next_level_block_start = level_block_end + 1
@@ -365,12 +369,12 @@ def scan_ddl_level(col, comment, columns_and_types,
 
         match = re.search(
             r'(?:^|\s*|,)({}[: ])'.format(col_at_level),
-            columns_and_types[level_block_start:next_level_block_start])
+            col_defs[level_block_start:next_level_block_start])
 
         if match:
             col_loc = match.start(1) + level_block_start
             return handle_nested_col_match(col, comment, col_at_level, col_loc,
-                                           columns_and_types,
+                                           col_defs,
                                            next_level_block_start,
                                            next_level_block_end,
                                            current_nesting_level,
@@ -389,50 +393,50 @@ def scan_ddl_level(col, comment, columns_and_types,
 
 
 def handle_nested_col_match(col, comment, col_at_level, col_loc,
-                            columns_and_types,
+                            col_defs,
                             next_level_block_start, next_level_block_end,
                             current_nesting_level, total_nesting_levels):
     if current_nesting_level == total_nesting_levels:
         # Matching an array OR a struct
         array_or_struct = re.search(
             r'(?:{}[: ]\s*(?:ARRAY|STRUCT)\s*)(<)'.format(col_at_level),
-            columns_and_types[col_loc:])
+            col_defs[col_loc:])
         # Array/struct columns need their comments applied
         # outside the brackets, rather than within
         if array_or_struct:
             col_start_bracket_loc = array_or_struct.start(1) + col_loc
             end_of_complex_field = find_matching_bracket(
-                columns_and_types,
+                col_defs,
                 col_start_bracket_loc)
             col_def_end = end_of_complex_field + 1
         else:
             col_end_match = re.search(
                 r'(?:{}:\s*\w*\s*)([,>\n])'.format(col_at_level),
-                columns_and_types[col_loc:])
+                col_defs[col_loc:])
             col_def_end = col_end_match.start(1) + col_loc
 
-        columns_and_types = (columns_and_types[:col_def_end] +
-                             ' COMMENT \'{}\''.format(comment) +
-                             columns_and_types[col_def_end:])
-        return columns_and_types
+        col_defs = (col_defs[:col_def_end] +
+                    ' COMMENT \'{}\''.format(comment) +
+                    col_defs[col_def_end:])
+        return col_defs
     else:
         current_nesting_level += 1
 
         # Matching an array OF a struct
         array_of_struct = re.search(
             r'(?:{}[: ]\s*ARRAY\s*<\s*STRUCT\s*)(<)'.format(col_at_level),
-            columns_and_types[col_loc:])
+            col_defs[col_loc:])
 
         # Structs within arrays do not have names, and should not be
         # commented. So, we skip to the next level of nesting
         if array_of_struct:
             next_level_block_start = array_of_struct.start(1) + col_loc
             next_level_block_end = find_matching_bracket(
-                columns_and_types, next_level_block_start)
+                col_defs, next_level_block_start)
 
         # Searching between the brackets that follow the just found col
         return scan_ddl_level(
-            col, comment, columns_and_types,
+            col, comment, col_defs,
             # Trimming the '<' and '>' characters out
             level_block_start=next_level_block_start + 1,
             level_block_end=next_level_block_end - 1,
@@ -441,9 +445,9 @@ def handle_nested_col_match(col, comment, col_at_level, col_loc,
         )
 
 
-def find_matching_bracket(columns_and_types, start_ind):
+def find_matching_bracket(col_defs, start_ind):
     bracket_count = 0
-    for i, c in enumerate(columns_and_types[start_ind:]):
+    for i, c in enumerate(col_defs[start_ind:]):
         if c == '<':
             bracket_count += 1
         elif c == '>':
@@ -453,7 +457,7 @@ def find_matching_bracket(columns_and_types, start_ind):
 
     raise ValueError(
         'No matching bracket found for {} at character {}.'.format(
-            columns_and_types[start_ind], start_ind)
+            col_defs[start_ind], start_ind)
         )
 
 
