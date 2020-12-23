@@ -407,10 +407,10 @@ def handle_nested_col_match(col, comment, col_at_level, col_loc,
         # outside the brackets, rather than within
         if array_or_struct:
             col_start_bracket_loc = array_or_struct.start(1) + col_loc
-            end_of_complex_field = find_matching_bracket(
+            col_end_bracket_loc = find_matching_bracket(
                 col_defs,
                 col_start_bracket_loc)
-            col_def_end = end_of_complex_field + 1
+            col_def_end = col_end_bracket_loc + 1
         else:
             col_end_match = re.search(
                 r'(?:{}:\s*\w*\s*)([,>\n])'.format(col_at_level),
