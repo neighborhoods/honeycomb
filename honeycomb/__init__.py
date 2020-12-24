@@ -5,6 +5,9 @@ from .describe_table import describe_table
 from .meta import get_table_storage_type_from_metadata
 from . import alter_table, check
 from .extras import bigquery, salesforce
+from ._version import (
+    __title__, __description__, __url__, __version__,
+    __author__, __author_email__)
 
 
 __all__ = [
@@ -17,5 +20,11 @@ __all__ = [
     'describe_table',
     'get_table_storage_type_from_metadata',
     'bigquery',
-    'salesforce'
+    'salesforce',
+    '__title__',
+    '__description__',
+    '__url__',
+    '__version__',
+    '__author__',
+    '__author_email__'
 ]
