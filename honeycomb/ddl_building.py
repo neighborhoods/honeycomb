@@ -362,6 +362,10 @@ def find_matching_bracket(col_defs, start_ind):
             The fully formatted, translated-from-dataframe column definition
             section of a DDL statement.
         start_ind (int): The index to start searching from in col_defs
+    Returns:
+        int: index of col_defs that the next matching bracket is at
+    Raises:
+        ValueError: If no matching bracket is found
     """
     bracket_count = 0
     for i, c in enumerate(col_defs[start_ind:]):
