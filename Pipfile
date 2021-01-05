@@ -21,10 +21,10 @@ wheel = "~=0.34"
 google-auth = "~=1.22"
 pandas = ">=0.25.3"
 pandas-gbq = "~=0.14"
+pandavro = "~=1.6"
 pyhive = {extras = ["hive", "presto"], version = "~=0.6.1"}
-river = {version="~=1.2", index="nhds"}
+river = {version="~=1.3", index="nhds"}
 simple-salesforce = "~=1.1"
-pandavro = {version = "==1.5.100", index = "nhds"}
 
 [requires]
 python_version = "3.7"

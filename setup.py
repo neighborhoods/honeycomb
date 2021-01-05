@@ -71,8 +71,8 @@ setup(
     install_requires=[
         'pandas>=0.25.3',
         'pyhive[hive, presto]>=0.6.1',
-        'river>=1.2.1',  # Stored in nhds PyPi
-        'pandavro==1.5.100'  # Stored in nhds PyPi
+        'river>=1.3.1',  # Stored in nhds PyPi
+        'pandavro>=1.6'
     ],
     extras_require={
         'bigquery':  ['google-auth>=1.22', 'pandas-gbq>=0.14'],
