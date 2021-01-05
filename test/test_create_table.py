@@ -1,9 +1,8 @@
-import pandas as pd
 import pytest
+
 import river as rv
 
-from honeycomb.create_table import (create_table_from_df,
-                                    add_comments_to_col_defs)
+from honeycomb.create_table import create_table_from_df
 
 
 def test_create_table_from_df_csv(mocker, setup_bucket_wo_contents,
@@ -40,36 +39,3 @@ def test_create_table_from_df_already_exists(mocker, test_df):
 
     with pytest.raises(ValueError, match='already exists'):
         create_table_from_df(test_df, 'test_table')
-
-
-def test_add_comments_to_col_defs(test_df):
-    """Tests that comments are added to column definitions as expected"""
-    col_defs = pd.DataFrame({
-        'col_name': ['objcol', 'intcol', 'floatcol',
-                     'boolcol', 'dtcol', 'timedeltacol'],
-        'dtype': ['object', 'int64', 'float64',
-                  'bool', 'datetime64', 'timedelta']
-    })
-
-    comments = {
-        'objcol': 'This column is type "object"',
-        'intcol': 'This column is type "int64"',
-        'floatcol': 'This column is type "float64"',
-        'boolcol': 'This column is type "bool"',
-        'dtcol': 'This column is type "datetime64"',
-        'timedeltacol': 'This column is type "timedelta"'
-    }
-
-    expected_df = col_defs.copy()
-    expected_df['comment'] = [
-        ' COMMENT \'This column is type "object"\'',
-        ' COMMENT \'This column is type "int64"\'',
-        ' COMMENT \'This column is type "float64"\'',
-        ' COMMENT \'This column is type "bool"\'',
-        ' COMMENT \'This column is type "datetime64"\'',
-        ' COMMENT \'This column is type "timedelta"\''
-    ]
-
-    col_defs_w_comments = add_comments_to_col_defs(col_defs, comments)
-
-    assert col_defs_w_comments.equals(expected_df)
