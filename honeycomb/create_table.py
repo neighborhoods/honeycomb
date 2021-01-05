@@ -1,7 +1,6 @@
 from collections import OrderedDict
 import os
 import pprint
-import re
 import sys
 
 import pandavro as pdx
@@ -9,6 +8,7 @@ import river as rv
 
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
+from honeycomb.ddl_building import build_create_table_ddl
 from honeycomb.__danger import __nuke_table
 
 
@@ -18,136 +18,6 @@ schema_to_zone_bucket_map = {
     'experimental': 'nhds-data-lake-experimental-zone',
     'curated': 'nhds-data-lake-curated-zone'
 }
-
-
-def add_comments_to_col_defs(col_defs, comments):
-    for column, comment in comments.items():
-        col_defs.loc[col_defs['col_name'] == column, 'comment'] = comment
-
-    col_defs['comment'] = (
-        ' COMMENT \'' + col_defs['comment'].astype(str) + '\'')
-    return col_defs
-
-
-def build_create_table_ddl(table_name, schema, col_defs,
-                           table_comment, storage_type,
-                           partitioned_by, full_path,
-                           tblproperties=None):
-    columns_and_types = col_defs.to_string(header=False, index=False)
-
-    # Removing excess whitespace left by df.to_string()
-    columns_and_types = re.sub(
-        r' +',
-        ' ',
-        columns_and_types
-    )
-
-    columns_and_types = columns_and_types.replace('\n', ',\n    ')
-
-    create_table_ddl = """
-CREATE EXTERNAL TABLE {schema}.{table_name} (
-    {columns_and_types}
-){table_comment}{partitioned_by}
-{storage_format_ddl}
-LOCATION 's3://{full_path}'{tblproperties}
-    """.format(
-        schema=schema,
-        table_name=table_name,
-        # BUG: pd.Series truncates long strings output by to_string,
-        # have to cast to DataFrame first.
-        columns_and_types=columns_and_types,
-        table_comment=('\nCOMMENT \'{table_comment}\''.format(
-            table_comment=table_comment)) if table_comment else '',
-        partitioned_by=('\nPARTITIONED BY ({})'.format(', '.join(
-            ['{} {}'.format(partition_name, partition_type)
-             for partition_name, partition_type in partitioned_by.items()]))
-            if partitioned_by else ''),
-        storage_format_ddl=meta.storage_type_specs[storage_type]['ddl'],
-        full_path=full_path.rsplit('/', 1)[0] + '/',
-        tblproperties=('\nTBLPROPERTIES (\n  {}\n)'.format('\n  '.join([
-            '\'{}\'=\'{}\''.format(prop_name, prop_val)
-            for prop_name, prop_val in tblproperties.items()]))
-            if tblproperties else '')
-    )
-
-    return create_table_ddl
-
-
-def check_for_comments(table_comment, columns, col_comments):
-    """
-    Checks that table and column comments are all present.
-    Args:
-        table_comment (str): Value to be used as a table comment in a new table
-        columns (pd.Index): Columns of the dataframe to be uploaded to the lake
-        col_comments (dict<str, str>):
-            Dictionary from column name keys to column comment values
-    Raises:
-        TypeError:
-            * If either 'table_comment' is not a string
-            * If any of the comment values in 'col_comments' are not strings
-        ValueError:
-            * If the table comment is 0-1 characters long
-            (discourages cheating)
-            * If not all columns present in the dataframe to be uploaded
-            exist in 'col_comments'
-            * If 'col_comments' contains columns that are not present in the
-            dataframe
-    """
-    if not isinstance(table_comment, str):
-        raise TypeError('"table_comment" must be a string.')
-
-    if not len(table_comment) > 1:
-        raise ValueError(
-            'A table comment is required when creating a table outside of '
-            'the experimental zone.')
-
-    cols_missing_from_comments = columns[columns.isin(col_comments.keys())]
-    if not all(columns.isin(col_comments.keys())):
-        raise ValueError(
-            'All columns must be present in the "col_comments" dictionary '
-            'with a proper comment when writing outside the experimental '
-            'zone. Columns missing: ' + ', '.join(cols_missing_from_comments))
-
-    extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
-    if extra_comments_in_dict:
-        raise ValueError('Columns present in "col_comments" that are not '
-                         'present in the DataFrame. Extra columns: ' +
-                         ', '.join(extra_comments_in_dict))
-
-    cols_w_nonstring_comments = []
-    cols_wo_comment = []
-    for col, comment in col_comments.items():
-        if not isinstance(comment, str):
-            cols_w_nonstring_comments.append(str(col))
-        if not len(comment) > 1:
-            cols_wo_comment.append(str(col))
-
-    if cols_w_nonstring_comments:
-        raise TypeError(
-            'Column comments must be strings. Columns with incorrect comment '
-            'types: ' + ', '.join(cols_w_nonstring_comments))
-    if cols_wo_comment:
-        raise ValueError(
-            'A column comment is required for each column when creating a '
-            'table outside of the experimental zone. Columns that require '
-            'comments: ' + ', '.join(cols_wo_comment))
-
-
-def confirm_ordered_dicts():
-    """
-    Checks if the Python version is at least 3.6, determining whether
-    dictionaries are ordered.
-    """
-    python_version = sys.version_info
-    if python_version.major >= 3:
-        if python_version.minor >= 6:
-            if python_version.minor == 6:
-                print(
-                    'You are using Python 3.6. Dictionaries are ordered in '
-                    '3.6, but only as a side effect. It is recommended to '
-                    'upgrade to 3.7 to have guaranteeably ordered dicts.')
-            return True
-    return False
 
 
 def create_table_from_df(df, table_name, schema=None,
@@ -262,7 +132,7 @@ def create_table_from_df(df, table_name, schema=None,
 
     storage_type = get_storage_type_from_filename(filename)
     df, col_defs = prep_df_and_col_defs(
-        df, dtypes, timezones, schema, storage_type, col_comments)
+        df, dtypes, timezones, schema, storage_type)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 
@@ -273,7 +143,8 @@ def create_table_from_df(df, table_name, schema=None,
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema,
-                                              col_defs, table_comment,
+                                              col_defs,
+                                              col_comments, table_comment,
                                               storage_type, partitioned_by,
                                               full_path, tblproperties)
     print(create_table_ddl)
@@ -288,17 +159,91 @@ def create_table_from_df(df, table_name, schema=None,
                      show_progressbar=False, **storage_settings)
 
 
+def confirm_ordered_dicts():
+    """
+    Checks if the Python version is at least 3.6, determining whether
+    dictionaries are ordered.
+    """
+    python_version = sys.version_info
+    if python_version.major >= 3:
+        if python_version.minor >= 6:
+            if python_version.minor == 6:
+                print(
+                    'You are using Python 3.6. Dictionaries are ordered in '
+                    '3.6, but only as a side effect. It is recommended to '
+                    'upgrade to 3.7 to have guaranteeably ordered dicts.')
+            return True
+    return False
+
+
+def check_for_comments(table_comment, columns, col_comments):
+    """
+    Checks that table and column comments are all present.
+    Args:
+        table_comment (str): Value to be used as a table comment in a new table
+        columns (pd.Index): Columns of the dataframe to be uploaded to the lake
+        col_comments (dict<str, str>):
+            Dictionary from column name keys to column comment values
+    Raises:
+        TypeError:
+            * If either 'table_comment' is not a string
+            * If any of the comment values in 'col_comments' are not strings
+        ValueError:
+            * If the table comment is 0-1 characters long
+            (discourages cheating)
+            * If not all columns present in the dataframe to be uploaded
+            exist in 'col_comments'
+            * If 'col_comments' contains columns that are not present in the
+            dataframe
+    """
+    if not isinstance(table_comment, str):
+        raise TypeError('"table_comment" must be a string.')
+
+    if not len(table_comment) > 1:
+        raise ValueError(
+            'A table comment is required when creating a table outside of '
+            'the experimental zone.')
+
+    cols_missing_from_comments = columns[columns.isin(col_comments.keys())]
+    if not all(columns.isin(col_comments.keys())):
+        raise ValueError(
+            'All columns must be present in the "col_comments" dictionary '
+            'with a proper comment when writing outside the experimental '
+            'zone. Columns missing: ' + ', '.join(cols_missing_from_comments))
+
+    extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
+    if extra_comments_in_dict:
+        raise ValueError('Columns present in "col_comments" that are not '
+                         'present in the DataFrame. Extra columns: ' +
+                         ', '.join(extra_comments_in_dict))
+
+    cols_w_nonstring_comments = []
+    cols_wo_comment = []
+    for col, comment in col_comments.items():
+        if not isinstance(comment, str):
+            cols_w_nonstring_comments.append(str(col))
+        if not len(comment) > 1:
+            cols_wo_comment.append(str(col))
+
+    if cols_w_nonstring_comments:
+        raise TypeError(
+            'Column comments must be strings. Columns with incorrect comment '
+            'types: ' + ', '.join(cols_w_nonstring_comments))
+    if cols_wo_comment:
+        raise ValueError(
+            'A column comment is required for each column when creating a '
+            'table outside of the experimental zone. Columns that require '
+            'comments: ' + ', '.join(cols_wo_comment))
+
+
 def get_storage_type_from_filename(filename):
     return os.path.splitext(filename)[-1][1:].lower()
 
 
 def prep_df_and_col_defs(df, dtypes, timezones, schema,
-                         storage_type, col_comments):
+                         storage_type):
     df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
-
-    if col_comments is not None:
-        col_defs = add_comments_to_col_defs(col_defs, col_comments)
     return df, col_defs
 
 
