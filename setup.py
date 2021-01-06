@@ -1,7 +1,9 @@
 import os
+import subprocess
 import sys
 from shutil import rmtree
 
+from github import Github
 from setuptools import setup, find_packages, Command
 
 
@@ -51,9 +53,22 @@ class UploadCommand(Command):
             '--repository-url http://pypi.neighborhoods.com/simple/')
         if returned_error:
             raise ValueError('Pushing to PyPi failed.')
+
         self.status('Pushing git tags…')
-        os.system('git tag v{0}'.format(about["__version__"]))
-        os.system('git push --tags')
+        current_commit = str(
+            subprocess.check_output(['git', 'rev-parse', 'HEAD']),
+            'utf-8').strip()
+
+        g = Github(os.getenv('GITHUB_PAT'))
+        repo = g.get_repo('neighborhoods/' + about['__title__'])
+        repo.create_git_tag_and_release(
+            tag=about['__version__'],
+            tag_message='',
+            release_name=about['__version__'],
+            release_message='',
+            object=current_commit,
+            type='commit'
+        )
 
         sys.exit()
 
