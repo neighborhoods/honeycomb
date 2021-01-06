@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.5] - 2020-12-09
 
+### Added
+- Support for automatic insertion of comments for nested fields during table creation
+
 ### Changed
 - `pandavro` additions were merged to master and released, so now using the publicly available version
 - Fields in `_version.py` are now available and viewable in-code
