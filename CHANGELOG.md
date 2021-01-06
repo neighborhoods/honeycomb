@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2021-01-05
 
 ### Added
-- Support for automatic insertion of comments for nested fields during table creatio
+- Support for automatic insertion of comments for nested fields during table creation
 
 ### Changed
 - Fields in `_version.py` are now available and viewable in-code
