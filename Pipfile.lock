@@ -589,7 +589,9 @@
         },
         "river": {
             "hashes": [
+                "sha256:6ea7199fd6a50e4804d14bb3b1e84bdf096a8fdc9980b9ffc42f6ebc145a2bcd",
                 "sha256:86acbfb7704e8a5e8c25a4cd0aef4379b19d64d1a285bd3c61295f09ae16f875",
+                "sha256:8be267d1112f13a86c84637bf060938b779a8dbc06be2a4f1a4b042654e03b74",
                 "sha256:bfa506e4474ec0cd5b08b813722b787f6b5c3ed3d7c717010eb0d013622d8db1"
             ],
             "index": "nhds",
@@ -1039,11 +1041,11 @@
         },
         "pipenv-devcheck": {
             "hashes": [
-                "sha256:1514f331680bd9872c56111b660c908ec7c3ac57781d6406820a94c09303a206",
-                "sha256:d4c0035cf71274aca81be1d5421173d7be883ec5e6501c68740b95ce2bf271be"
+                "sha256:eae6051a27889c750c8e470fef897300b75ed2b8e6b6f7969c98bb122bb3516d",
+                "sha256:ebac64a46902345a71e5ff60a342186a9a29cb4b288644e3465f8de73e19d15b"
             ],
             "index": "pypi",
-            "version": "==0.5.0"
+            "version": "==0.5.1"
         },
         "pipfile": {
             "hashes": [
