@@ -8,15 +8,16 @@ import river as rv
 
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
-from honeycomb.ddl_building import build_create_table_ddl
+from honeycomb.describe_table import describe_table
+from honeycomb.ddl_building import build_create_table_ddl, prepend_comment_str
 from honeycomb.__danger import __nuke_table
 
 
 schema_to_zone_bucket_map = {
-    'landing': 'nhds-data-lake-landing-zone',
-    'staging': 'nhds-data-lake-staging-zone',
-    'experimental': 'nhds-data-lake-experimental-zone',
-    'curated': 'nhds-data-lake-curated-zone'
+    'landing': os.getenv('HC_LANDING_ZONE_BUCKET'),
+    'staging': os.getenv('HC_LANDING_ZONE_BUCKET'),
+    'experimental': os.getenv('HC_EXPERIMENTAL_ZONE_BUCKET'),
+    'curated': os.getenv('HC_CURATED_ZONE_BUCKET')
 }
 
 
@@ -142,11 +143,10 @@ def create_table_from_df(df, table_name, schema=None,
             df, storage_settings, tblproperties, avro_schema)
 
     full_path = '/'.join([bucket, path])
-    create_table_ddl = build_create_table_ddl(table_name, schema,
-                                              col_defs,
+    create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
+                                              full_path, storage_type,
                                               col_comments, table_comment,
-                                              storage_type, partitioned_by,
-                                              full_path, tblproperties)
+                                              partitioned_by, tblproperties)
     print(create_table_ddl)
     hive.run_lake_query(create_table_ddl, engine='hive')
 
@@ -258,6 +258,30 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
     return storage_settings, tblproperties
 
 
+def ctas(select_stmt, table_name, schema=None, path=None, storage_type='pq'):
+    temp_schema = 'experimental'
+    view_name = '{}_temp_ctas_view'.format(table_name)
+    create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(temp_schema,
+                                                        view_name,
+                                                        select_stmt)
+    hive.run_lake_query(create_view_stmt)
+
+    bucket = schema_to_zone_bucket_map[schema]
+    if path is None:
+        path = table_name
+    full_path = '/'.join([bucket, path])
+
+    col_defs = describe_table(view_name, schema=temp_schema)
+    col_defs = prepend_comment_str(col_defs)
+    create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
+                                              full_path, storage_type)
+
+    hive.run_lake_query(create_table_ddl)
+    hive.run_lake_query('INSERT OVERWRITE TABLE {}.{} '
+                        'SELECT * FROM {}.{}'.format(schema, table_name,
+                                                     temp_schema, view_name))
+
+
 def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
                                table_comment=None, col_comments=None,
                                timezones=None, copy_df=True):
@@ -333,7 +357,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
 
     storage_type = get_storage_type_from_filename(filename)
     df, col_defs = prep_df_and_col_defs(
-        df, dtypes, timezones, schema, storage_type, col_comments)
+        df, dtypes, timezones, schema, storage_type)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 
@@ -343,11 +367,10 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
             df, storage_settings, tblproperties)
 
     full_path = '/'.join([bucket, path])
-    create_table_ddl = build_create_table_ddl(table_name, schema,
-                                              col_defs, table_comment,
-                                              storage_type,
+    create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
+                                              full_path, storage_type,
+                                              col_comments, table_comment,
                                               partitioned_by=None,
-                                              full_path=full_path,
                                               tblproperties=tblproperties)
     print(create_table_ddl)
     drop_table_stmt = 'DROP TABLE IF EXISTS {}.{}'.format(schema, table_name)
