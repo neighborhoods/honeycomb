@@ -4,9 +4,9 @@ from honeycomb import meta
 
 
 def build_create_table_ddl(table_name, schema, col_defs,
-                           col_comments, table_comment, storage_type,
-                           partitioned_by, full_path,
-                           tblproperties=None):
+                           full_path, storage_type,
+                           col_comments=None, table_comment=None,
+                           partitioned_by=None, tblproperties=None):
     """
     Assembles the CREATE TABLE statement for the DataFrame being uploaded.
 
@@ -69,7 +69,7 @@ LOCATION 's3://{full_path}'{tblproperties}
     return create_table_ddl
 
 
-def format_col_defs(col_defs, col_comments):
+def format_col_defs(col_defs, col_comments=None):
     """
     Formats col_defs as a string and inserts column comments into it
 
@@ -132,8 +132,13 @@ def add_comments_to_col_defs(col_defs, col_comments):
     for column, comment in col_comments.items():
         col_defs.loc[col_defs['col_name'] == column, 'comment'] = comment
 
-    col_defs['comment'] = (
-        ' COMMENT \'' + col_defs['comment'].astype(str) + '\'')
+    col_defs['comment'] = prepend_comment_str(col_defs)
+    return col_defs
+
+
+def prepend_comment_str(col_defs):
+    col_defs['comment'] = col_defs['comment'].apply(
+        lambda x: ' COMMENT \'' + str(x) + '\'' if x else x)
     return col_defs
 
 

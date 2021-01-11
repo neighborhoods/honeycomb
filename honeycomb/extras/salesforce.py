@@ -1,9 +1,11 @@
+import os
+
 import boto3
 import pandas as pd
 
 
 def get_secret(key):
-    client = boto3.client('ssm', 'us-east-1')
+    client = boto3.client('ssm', os.getenv('AWS_DEFAULT_REGION'))
     resp = client.get_parameter(Name=key, WithDecryption=True)
     return resp['Parameter']['Value']
 
@@ -22,7 +24,7 @@ def get_salesforce_conn():
         raise ImportError('Package "simple-salesforce" is required to use '
                           'honeycomb\'s "salesforce" module.')
 
-    path = '/prod/lead-routing-serverless-functions/salesforce-data-science/'
+    path = os.getenv('HC_SF_SSM_PATH')
     return Salesforce(
         username=get_secret(path + 'username'),
         password=get_secret(path + 'password'),

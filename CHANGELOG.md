@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2021-01-12
+
+### Changed
+- Bucket names, SSM paths to Salesforce credentials, and default AWS regions
+are now set via environment variables.
+
 ## [1.4.1] - 2021-01-06
 
 ### Changed
