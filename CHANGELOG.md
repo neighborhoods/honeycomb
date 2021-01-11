@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.4.2] - 2021-01-12
+## [1.5.0] - 2021-01-12
+
+### Added
+- CTAS functionality
 
 ### Changed
 - Bucket names, SSM paths to Salesforce credentials, and default AWS regions
