@@ -164,7 +164,7 @@ def confirm_ordered_dicts():
     return False
 
 
-def handle_existing_table(table_name, schema, overwrite, is_view=False):
+def handle_existing_table(table_name, schema, overwrite):
     table_exists = check.table_existence(table_name, schema)
     if table_exists:
         if not overwrite:
