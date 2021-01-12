@@ -15,7 +15,7 @@ from honeycomb.__danger import __nuke_table
 
 schema_to_zone_bucket_map = {
     'landing': os.getenv('HC_LANDING_ZONE_BUCKET'),
-    'staging': os.getenv('HC_LANDING_ZONE_BUCKET'),
+    'staging': os.getenv('HC_STAGING_ZONE_BUCKET'),
     'experimental': os.getenv('HC_EXPERIMENTAL_ZONE_BUCKET'),
     'curated': os.getenv('HC_CURATED_ZONE_BUCKET')
 }
@@ -99,21 +99,9 @@ def create_table_from_df(df, table_name, schema=None,
 
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
-        if overwrite and not os.getenv('HC_PROD_ENV'):
-            raise ValueError(
-                'Overwrite functionality is only available in the '
-                'experimental zone. Contact a lake administrator if '
-                'modification of a non-experimental table is needed.')
+        check_for_allowed_overwrite(overwrite)
 
-    table_exists = check.table_existence(table_name, schema)
-    if table_exists:
-        if not overwrite:
-            raise ValueError(
-                'Table \'{schema}.{table_name}\' already exists. '.format(
-                    schema=schema,
-                    table_name=table_name))
-        else:
-            __nuke_table(table_name, schema)
+    handle_existing_table(table_name, schema, overwrite)
 
     if path is None:
         path = table_name
@@ -176,6 +164,18 @@ def confirm_ordered_dicts():
     return False
 
 
+def handle_existing_table(table_name, schema, overwrite, is_view=False):
+    table_exists = check.table_existence(table_name, schema)
+    if table_exists:
+        if not overwrite:
+            raise ValueError(
+                'Table \'{schema}.{table_name}\' already exists. '.format(
+                    schema=schema,
+                    table_name=table_name))
+        else:
+            __nuke_table(table_name, schema)
+
+
 def check_for_comments(table_comment, columns, col_comments):
     """
     Checks that table and column comments are all present.
@@ -236,6 +236,14 @@ def check_for_comments(table_comment, columns, col_comments):
             'comments: ' + ', '.join(cols_wo_comment))
 
 
+def check_for_allowed_overwrite(overwrite):
+    if overwrite and not os.getenv('HC_PROD_ENV'):
+        raise ValueError(
+            'Overwrite functionality is only available in the '
+            'experimental zone. Contact a lake administrator if '
+            'modification of a non-experimental table is needed.')
+
+
 def get_storage_type_from_filename(filename):
     return os.path.splitext(filename)[-1][1:].lower()
 
@@ -258,28 +266,41 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
     return storage_settings, tblproperties
 
 
-def ctas(select_stmt, table_name, schema=None, path=None, storage_type='pq'):
+def ctas(select_stmt, table_name, schema=None,
+         path=None, storage_type='pq', overwrite=False):
+    if schema != 'experimental':
+        check_for_allowed_overwrite(overwrite)
+
     temp_schema = 'experimental'
     view_name = '{}_temp_ctas_view'.format(table_name)
     create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(temp_schema,
                                                         view_name,
                                                         select_stmt)
+
+    handle_existing_table(table_name, schema, overwrite)
     hive.run_lake_query(create_view_stmt)
 
     bucket = schema_to_zone_bucket_map[schema]
     if path is None:
         path = table_name
-    full_path = '/'.join([bucket, path])
+    full_path = '/'.join([bucket, path]) + '/'
 
     col_defs = describe_table(view_name, schema=temp_schema)
     col_defs = prepend_comment_str(col_defs)
     create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
                                               full_path, storage_type)
 
-    hive.run_lake_query(create_table_ddl)
-    hive.run_lake_query('INSERT OVERWRITE TABLE {}.{} '
-                        'SELECT * FROM {}.{}'.format(schema, table_name,
-                                                     temp_schema, view_name))
+    try:
+        print(create_table_ddl)
+        hive.run_lake_query(create_table_ddl)
+        insert_overwrite_command = (
+            'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
+                schema, table_name, temp_schema, view_name)
+        print(insert_overwrite_command)
+        hive.run_lake_query(insert_overwrite_command)
+    finally:
+        pass
+        # hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
 
 
 def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
