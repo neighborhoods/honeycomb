@@ -17,6 +17,8 @@ def __nuke_table(table_name, schema):
     table_metadata = meta.get_table_metadata(table_name, schema)
     current_bucket = table_metadata['bucket']
     current_path = table_metadata['path']
+    if not current_path.endswith('/'):
+        current_path += '/'
     hive.run_lake_query('DROP TABLE IF EXISTS {}.{}'.format(
         schema,
         table_name),
@@ -57,7 +59,8 @@ def __nuke_partition(table_name, schema, partition_values):
 
     uri_prefix = 's3://'
     bucket, path = partition_location[len(uri_prefix):].split('/', 1)
-    path += '/'
+    if not path.endswith('/'):
+        path += '/'
 
     hive.run_lake_query(
         'ALTER TABLE {}.{} DROP IF EXISTS PARTITION ({})'.format(
