@@ -132,9 +132,9 @@ def create_table_from_df(df, table_name, schema=None,
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
-                                              full_path, storage_type,
                                               col_comments, table_comment,
-                                              partitioned_by, tblproperties)
+                                              storage_type, partitioned_by,
+                                              full_path, tblproperties)
     print(create_table_ddl)
     hive.run_lake_query(create_table_ddl, engine='hive')
 
@@ -405,9 +405,10 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
-                                              full_path, storage_type,
                                               col_comments, table_comment,
+                                              storage_type,
                                               partitioned_by=None,
+                                              full_path=full_path,
                                               tblproperties=tblproperties)
     print(create_table_ddl)
     drop_table_stmt = 'DROP TABLE IF EXISTS {}.{}'.format(schema, table_name)

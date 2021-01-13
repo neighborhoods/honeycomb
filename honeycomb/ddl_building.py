@@ -4,9 +4,9 @@ from honeycomb import meta
 
 
 def build_create_table_ddl(table_name, schema, col_defs,
-                           full_path, storage_type,
-                           col_comments=None, table_comment=None,
-                           partitioned_by=None, tblproperties=None):
+                           col_comments, table_comment, storage_type,
+                           partitioned_by, full_path,
+                           tblproperties=None):
     """
     Assembles the CREATE TABLE statement for the DataFrame being uploaded.
 
