@@ -69,7 +69,7 @@ LOCATION 's3://{full_path}'{tblproperties}
     return create_table_ddl
 
 
-def format_col_defs(col_defs, col_comments=None):
+def format_col_defs(col_defs, col_comments):
     """
     Formats col_defs as a string and inserts column comments into it
 
@@ -132,26 +132,8 @@ def add_comments_to_col_defs(col_defs, col_comments):
     for column, comment in col_comments.items():
         col_defs.loc[col_defs['col_name'] == column, 'comment'] = comment
 
-    col_defs['comment'] = prepend_comment_str(col_defs)
-    return col_defs
-
-
-def prepend_comment_str(col_defs):
-    """
-    Helper fn to prepend ' COMMENT ' to the beginning of col comments
-
-    Args:
-        col_defs (pd.DataFrame):
-            A DataFrame containin the columns 'col_name', 'dtype', and
-            'comment', describing column definitions and comments
-
-    Returns:
-        col_defs (pd.DataFrame):
-            The same DataFrame as was passed to the fn, with the
-            'comment' column prepended where necessary
-    """
-    col_defs['comment'] = col_defs['comment'].apply(
-        lambda x: ' COMMENT \'' + str(x) + '\'' if x else x)
+    col_defs['comment'] = (
+        ' COMMENT \'' + col_defs['comment'].astype(str) + '\'')
     return col_defs
 
 
