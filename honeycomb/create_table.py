@@ -107,8 +107,7 @@ def create_table_from_df(df, table_name, schema=None,
         path = table_name
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
-    if not path.endswith('/'):
-        path += '/'
+    path = meta.ensure_path_ends_w_slash(path)
 
     bucket = schema_to_zone_bucket_map[schema]
 
@@ -371,9 +370,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
 
     table_metadata = meta.get_table_metadata(table_name, schema)
     bucket = table_metadata['bucket']
-    path = table_metadata['path']
-    if not path.endswith('/'):
-        path += '/'
+    path = meta.ensure_path_ends_w_slash(table_metadata['path'])
 
     objects_present = rv.list_objects(path, bucket)
 

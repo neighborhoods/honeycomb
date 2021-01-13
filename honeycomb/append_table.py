@@ -73,8 +73,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
             'The type specified in the filename does not match the '
             'filetype of the table.'
         )
-    if not path.endswith('/'):
-        path += '/'
+    path = meta.ensure_path_ends_w_slash(path)
 
     if partition_values:
         path += add_partition(table_name, schema, partition_values)
