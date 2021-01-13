@@ -45,6 +45,12 @@ def prep_schema_and_table(table, schema):
     return table, schema
 
 
+def ensure_path_ends_w_slash(path):
+    if not path.endswith('/'):
+        path += '/'
+    return path
+
+
 def gen_filename_if_allowed(schema, storage_type=None):
     """
     Pass-through to name generation fn, if writing to the experimental zone
