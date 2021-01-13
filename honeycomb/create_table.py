@@ -9,7 +9,7 @@ import river as rv
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
 from honeycomb.describe_table import describe_table
-from honeycomb.ddl_building import build_create_table_ddl, prepend_comment_str
+from honeycomb.ddl_building import build_create_table_ddl
 from honeycomb.__danger import __nuke_table
 
 
@@ -306,7 +306,6 @@ def ctas(select_stmt, table_name, schema=None,
     full_path = '/'.join([bucket, path]) + '/'
 
     col_defs = describe_table(view_name, schema=temp_schema)
-    col_defs = prepend_comment_str(col_defs)
     create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
                                               full_path, storage_type)
 
