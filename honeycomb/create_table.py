@@ -291,16 +291,13 @@ def ctas(select_stmt, table_name, schema=None,
                                               full_path, storage_type)
 
     try:
-        print(create_table_ddl)
         hive.run_lake_query(create_table_ddl)
         insert_overwrite_command = (
             'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
                 schema, table_name, temp_schema, view_name)
-        print(insert_overwrite_command)
         hive.run_lake_query(insert_overwrite_command)
     finally:
-        pass
-        # hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
+        hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
 
 
 def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
