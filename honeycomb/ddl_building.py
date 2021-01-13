@@ -137,6 +137,19 @@ def add_comments_to_col_defs(col_defs, col_comments):
 
 
 def prepend_comment_str(col_defs):
+    """
+    Helper fn to prepend ' COMMENT ' to the beginning of col comments
+
+    Args:
+        col_defs (pd.DataFrame):
+            A DataFrame containin the columns 'col_name', 'dtype', and
+            'comment', describing column definitions and comments
+
+    Returns:
+        col_defs (pd.DataFrame):
+            The same DataFrame as was passed to the fn, with the
+            'comment' column prepended where necessary
+    """
     col_defs['comment'] = col_defs['comment'].apply(
         lambda x: ' COMMENT \'' + str(x) + '\'' if x else x)
     return col_defs
