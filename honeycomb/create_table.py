@@ -268,6 +268,26 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
 
 def ctas(select_stmt, table_name, schema=None,
          path=None, storage_type='pq', overwrite=False):
+    """
+    Emulates the standard SQL 'CREATE TABLE AS SELECT' syntax.
+
+    Args:
+        select_stmt (str):
+            The select statement to build a new table from
+        table_name (str):
+            The name of the table to be created
+        schema (str):
+            The schema the new table should be created in
+        path (str):
+            The path that the new table's underlying files will be stored at.
+            If left unset, it will be set to a folder with the same name
+            as the table, which is generally recommended
+        storage_type (str):
+            The desired storage type of the new table
+        overwrite (bool):
+            Whether to overwrite or fail if a table already exists with
+            the intended name of the new table in the selected schema
+    """
     if schema != 'experimental':
         check_for_allowed_overwrite(overwrite)
 
