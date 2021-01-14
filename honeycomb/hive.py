@@ -5,7 +5,7 @@ import pandas as pd
 from honeycomb.connection import get_db_connection
 
 
-def run_lake_query(query, engine='hive'):
+def run_lake_query(query, engine='hive', configuration=None):
     """
     General wrapper function around querying with different engines
 
@@ -23,7 +23,7 @@ def run_lake_query(query, engine='hive'):
         'hive': _hive_query,
     }
     query_fn = query_fns[engine]
-    df = query_fn(query, addr)
+    df = query_fn(query, addr, configuration)
     return df
 
 
@@ -38,35 +38,46 @@ def _query_returns_df(query):
     return False
 
 
-def _hive_query(query, addr):
+def _hive_query(query, addr, configuration):
     """
     Hive-specific query function
     Note: uses an actual connection, rather than a connection cursor
     """
     col_prefix_regex = r'^.*\.'
     if _query_returns_df(query):
-        with get_db_connection('hive', addr=addr, cursor=False) as conn:
-            df = pd.read_sql(query, conn)
-            if 'join' not in query.lower():
-                # Cleans table prefixes from all column names,
-                # which are added by Hive even in non-join queries
-                df.columns = df.columns.str.replace(col_prefix_regex, '')
-            else:
-                # Cleans table prefixes from any non-duplicated column names
-                cols_wo_prefix = df.columns.str.replace(col_prefix_regex, '')
-                duplicated_cols = cols_wo_prefix.duplicated(keep=False)
-                cols_to_rename = dict(zip(df.columns[~duplicated_cols],
-                                          cols_wo_prefix[~duplicated_cols]))
+        try:
+            with get_db_connection('hive', addr=addr, cursor=False,
+                                   configuration=configuration) as conn:
 
-                df = df.rename(columns=cols_to_rename)
+                df = pd.read_sql(query, conn)
+        except pd.io.sql.DatabaseError as e:
+            complex_col_err_substring = (
+                'cannot be cast to org.apache.hadoop.'
+                'hive.serde2.objectinspector.PrimitiveObjectInspector'
+            )
+            if complex_col_err_substring in e.args[0]:
+
+        if 'join' not in query.lower():
+            # Cleans table prefixes from all column names,
+            # which are added by Hive even in non-join queries
+            df.columns = df.columns.str.replace(col_prefix_regex, '')
+        else:
+            # Cleans table prefixes from any non-duplicated column names
+            cols_wo_prefix = df.columns.str.replace(col_prefix_regex, '')
+            duplicated_cols = cols_wo_prefix.duplicated(keep=False)
+            cols_to_rename = dict(zip(df.columns[~duplicated_cols],
+                                      cols_wo_prefix[~duplicated_cols]))
+
+            df = df.rename(columns=cols_to_rename)
 
             return df
     else:
-        with get_db_connection('hive', addr=addr, cursor=True) as conn:
+        with get_db_connection('hive', addr=addr, cursor=True,
+                               configuration=configuration) as conn:
             conn.execute(query)
 
 
-def _presto_query(query, addr):
+def _presto_query(query, addr, configuration):
     """
     Presto-specific query function
     Note: uses an actual connection, rather than a connection cursor
@@ -74,9 +85,11 @@ def _presto_query(query, addr):
     # Presto does not have a notion of a persistent connection, so closing
     # is unnecessary
     if _query_returns_df(query):
-        conn = get_db_connection('presto', addr=addr, cursor=False)
+        conn = get_db_connection('presto', addr=addr, cursor=False,
+                                 configuration=configuration)
         df = pd.read_sql(query, conn)
         return df
     else:
-        conn = get_db_connection('presto', addr=addr, cursor=True)
+        conn = get_db_connection('presto', addr=addr, cursor=True,
+                                 configuration=configuration)
         conn.execute(query)
