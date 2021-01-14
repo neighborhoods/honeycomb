@@ -37,12 +37,23 @@ storage_type_specs = {
 
 
 def prep_schema_and_table(table, schema):
+    """
+    If schema is provided in the table name string,
+    it is split out. If none is provided, sets it to 'experimental'
+    """
     if schema is None:
         if '.' in table:
             schema, table = table.split('.')
         else:
             schema = 'experimental'
     return table, schema
+
+
+def ensure_path_ends_w_slash(path):
+    """Ensures that a path string ends with a slash"""
+    if not path.endswith('/'):
+        path += '/'
+    return path
 
 
 def gen_filename_if_allowed(schema, storage_type=None):

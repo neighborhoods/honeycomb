@@ -8,15 +8,16 @@ import river as rv
 
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
+from honeycomb.describe_table import describe_table
 from honeycomb.ddl_building import build_create_table_ddl
 from honeycomb.__danger import __nuke_table
 
 
 schema_to_zone_bucket_map = {
-    'landing': 'nhds-data-lake-landing-zone',
-    'staging': 'nhds-data-lake-staging-zone',
-    'experimental': 'nhds-data-lake-experimental-zone',
-    'curated': 'nhds-data-lake-curated-zone'
+    'landing': os.getenv('HC_LANDING_ZONE_BUCKET'),
+    'staging': os.getenv('HC_STAGING_ZONE_BUCKET'),
+    'experimental': os.getenv('HC_EXPERIMENTAL_ZONE_BUCKET'),
+    'curated': os.getenv('HC_CURATED_ZONE_BUCKET')
 }
 
 
@@ -98,28 +99,15 @@ def create_table_from_df(df, table_name, schema=None,
 
     if schema != 'experimental':
         check_for_comments(table_comment, df.columns, col_comments)
-        if overwrite and not os.getenv('HC_PROD_ENV'):
-            raise ValueError(
-                'Overwrite functionality is only available in the '
-                'experimental zone. Contact a lake administrator if '
-                'modification of a non-experimental table is needed.')
+        check_for_allowed_overwrite(overwrite)
 
-    table_exists = check.table_existence(table_name, schema)
-    if table_exists:
-        if not overwrite:
-            raise ValueError(
-                'Table \'{schema}.{table_name}\' already exists. '.format(
-                    schema=schema,
-                    table_name=table_name))
-        else:
-            __nuke_table(table_name, schema)
+    handle_existing_table(table_name, schema, overwrite)
 
     if path is None:
         path = table_name
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
-    if not path.endswith('/'):
-        path += '/'
+    path = meta.ensure_path_ends_w_slash(path)
 
     bucket = schema_to_zone_bucket_map[schema]
 
@@ -142,8 +130,7 @@ def create_table_from_df(df, table_name, schema=None,
             df, storage_settings, tblproperties, avro_schema)
 
     full_path = '/'.join([bucket, path])
-    create_table_ddl = build_create_table_ddl(table_name, schema,
-                                              col_defs,
+    create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
                                               col_comments, table_comment,
                                               storage_type, partitioned_by,
                                               full_path, tblproperties)
@@ -176,12 +163,28 @@ def confirm_ordered_dicts():
     return False
 
 
+def handle_existing_table(table_name, schema, overwrite):
+    table_exists = check.table_existence(table_name, schema)
+    if table_exists:
+        if not overwrite:
+            raise ValueError(
+                'Table \'{schema}.{table_name}\' already exists. '.format(
+                    schema=schema,
+                    table_name=table_name))
+        else:
+            __nuke_table(table_name, schema)
+
+
 def check_for_comments(table_comment, columns, col_comments):
     """
     Checks that table and column comments are all present.
+    Nested column comments cannot easily be checked for, so it is up to
+    the user to utilize best practices regarding them.
+
     Args:
         table_comment (str): Value to be used as a table comment in a new table
-        columns (pd.Index): Columns of the dataframe to be uploaded to the lake
+        columns (pd.Index or pd.Series):
+            Columns of the dataframe to be uploaded to the lake
         col_comments (dict<str, str>):
             Dictionary from column name keys to column comment values
     Raises:
@@ -196,6 +199,9 @@ def check_for_comments(table_comment, columns, col_comments):
             * If 'col_comments' contains columns that are not present in the
             dataframe
     """
+    if table_comment is None:
+        raise ValueError('"table_comment" is required when working outside '
+                         'the experimental zone.')
     if not isinstance(table_comment, str):
         raise TypeError('"table_comment" must be a string.')
 
@@ -204,6 +210,9 @@ def check_for_comments(table_comment, columns, col_comments):
             'A table comment is required when creating a table outside of '
             'the experimental zone.')
 
+    if col_comments is None:
+        raise ValueError('"col_comments" is required when working outside '
+                         'the experimental zone.')
     cols_missing_from_comments = columns[columns.isin(col_comments.keys())]
     if not all(columns.isin(col_comments.keys())):
         raise ValueError(
@@ -212,6 +221,9 @@ def check_for_comments(table_comment, columns, col_comments):
             'zone. Columns missing: ' + ', '.join(cols_missing_from_comments))
 
     extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
+    # Removing comments for nested fields
+    extra_comments_in_dict = [comment for comment in extra_comments_in_dict
+                              if '.' not in comment]
     if extra_comments_in_dict:
         raise ValueError('Columns present in "col_comments" that are not '
                          'present in the DataFrame. Extra columns: ' +
@@ -236,6 +248,14 @@ def check_for_comments(table_comment, columns, col_comments):
             'comments: ' + ', '.join(cols_wo_comment))
 
 
+def check_for_allowed_overwrite(overwrite):
+    if overwrite and not os.getenv('HC_PROD_ENV'):
+        raise ValueError(
+            'Overwrite functionality is only available in the '
+            'experimental zone. Contact a lake administrator if '
+            'modification of a non-experimental table is needed.')
+
+
 def get_storage_type_from_filename(filename):
     return os.path.splitext(filename)[-1][1:].lower()
 
@@ -256,6 +276,66 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
     storage_settings['schema'] = avro_schema
 
     return storage_settings, tblproperties
+
+
+def ctas(select_stmt, table_name, schema=None,
+         path=None, table_comment=None, col_comments=None,
+         storage_type='pq', overwrite=False):
+    """
+    Emulates the standard SQL 'CREATE TABLE AS SELECT' syntax.
+
+    Args:
+        select_stmt (str):
+            The select statement to build a new table from
+        table_name (str):
+            The name of the table to be created
+        schema (str):
+            The schema the new table should be created in
+        path (str):
+            The path that the new table's underlying files will be stored at.
+            If left unset, it will be set to a folder with the same name
+            as the table, which is generally recommended
+        table_comment (str, optional): Documentation on the table's purpose
+        col_comments (dict<str:str>, optional):
+            Dictionary from column name keys to column descriptions.
+        storage_type (str):
+            The desired storage type of the new table
+        overwrite (bool):
+            Whether to overwrite or fail if a table already exists with
+            the intended name of the new table in the selected schema
+    """
+    if schema != 'experimental':
+        check_for_allowed_overwrite(overwrite)
+
+    bucket = schema_to_zone_bucket_map[schema]
+    if path is None:
+        path = table_name
+    full_path = '/'.join([bucket, path]) + '/'
+
+    temp_schema = 'experimental'
+    view_name = '{}_temp_ctas_view'.format(table_name)
+    create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(
+        temp_schema, view_name, select_stmt)
+
+    hive.run_lake_query(create_view_stmt)
+
+    try:
+        col_defs = describe_table(view_name, schema=temp_schema)
+
+        if schema != 'experimental':
+            check_for_comments(
+                table_comment, col_defs['col_name'], col_comments)
+
+        create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
+                                                  full_path, storage_type)
+        handle_existing_table(table_name, schema, overwrite)
+        hive.run_lake_query(create_table_ddl)
+        insert_overwrite_command = (
+            'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
+                schema, table_name, temp_schema, view_name)
+        hive.run_lake_query(insert_overwrite_command)
+    finally:
+        hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
 
 
 def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
@@ -310,9 +390,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
 
     table_metadata = meta.get_table_metadata(table_name, schema)
     bucket = table_metadata['bucket']
-    path = table_metadata['path']
-    if not path.endswith('/'):
-        path += '/'
+    path = meta.ensure_path_ends_w_slash(table_metadata['path'])
 
     objects_present = rv.list_objects(path, bucket)
 
@@ -333,7 +411,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
 
     storage_type = get_storage_type_from_filename(filename)
     df, col_defs = prep_df_and_col_defs(
-        df, dtypes, timezones, schema, storage_type, col_comments)
+        df, dtypes, timezones, schema, storage_type)
 
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 
@@ -343,8 +421,8 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
             df, storage_settings, tblproperties)
 
     full_path = '/'.join([bucket, path])
-    create_table_ddl = build_create_table_ddl(table_name, schema,
-                                              col_defs, table_comment,
+    create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
+                                              col_comments, table_comment,
                                               storage_type,
                                               partitioned_by=None,
                                               full_path=full_path,
