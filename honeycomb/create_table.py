@@ -178,9 +178,13 @@ def handle_existing_table(table_name, schema, overwrite):
 def check_for_comments(table_comment, columns, col_comments):
     """
     Checks that table and column comments are all present.
+    Nested column comments cannot easily be checked for, so it is up to
+    the user to utilize best practices regarding them.
+
     Args:
         table_comment (str): Value to be used as a table comment in a new table
-        columns (pd.Index): Columns of the dataframe to be uploaded to the lake
+        columns (pd.Index or pd.Series):
+            Columns of the dataframe to be uploaded to the lake
         col_comments (dict<str, str>):
             Dictionary from column name keys to column comment values
     Raises:
@@ -195,6 +199,9 @@ def check_for_comments(table_comment, columns, col_comments):
             * If 'col_comments' contains columns that are not present in the
             dataframe
     """
+    if table_comment is None:
+        raise ValueError('"table_comment" is required when working outside '
+                         'the experimental zone.')
     if not isinstance(table_comment, str):
         raise TypeError('"table_comment" must be a string.')
 
@@ -203,6 +210,9 @@ def check_for_comments(table_comment, columns, col_comments):
             'A table comment is required when creating a table outside of '
             'the experimental zone.')
 
+    if col_comments is None:
+        raise ValueError('"col_comments" is required when working outside '
+                         'the experimental zone.')
     cols_missing_from_comments = columns[columns.isin(col_comments.keys())]
     if not all(columns.isin(col_comments.keys())):
         raise ValueError(
@@ -211,6 +221,9 @@ def check_for_comments(table_comment, columns, col_comments):
             'zone. Columns missing: ' + ', '.join(cols_missing_from_comments))
 
     extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
+    # Removing comments for nested fields
+    extra_comments_in_dict = [comment for comment in extra_comments_in_dict
+                              if '.' not in comment]
     if extra_comments_in_dict:
         raise ValueError('Columns present in "col_comments" that are not '
                          'present in the DataFrame. Extra columns: ' +
@@ -266,7 +279,8 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
 
 
 def ctas(select_stmt, table_name, schema=None,
-         path=None, storage_type='pq', overwrite=False):
+         path=None, table_comment=None, col_comments=None,
+         storage_type='pq', overwrite=False):
     """
     Emulates the standard SQL 'CREATE TABLE AS SELECT' syntax.
 
@@ -281,6 +295,9 @@ def ctas(select_stmt, table_name, schema=None,
             The path that the new table's underlying files will be stored at.
             If left unset, it will be set to a folder with the same name
             as the table, which is generally recommended
+        table_comment (str, optional): Documentation on the table's purpose
+        col_comments (dict<str:str>, optional):
+            Dictionary from column name keys to column descriptions.
         storage_type (str):
             The desired storage type of the new table
         overwrite (bool):
@@ -290,25 +307,28 @@ def ctas(select_stmt, table_name, schema=None,
     if schema != 'experimental':
         check_for_allowed_overwrite(overwrite)
 
-    temp_schema = 'experimental'
-    view_name = '{}_temp_ctas_view'.format(table_name)
-    create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(temp_schema,
-                                                        view_name,
-                                                        select_stmt)
-
-    handle_existing_table(table_name, schema, overwrite)
-    hive.run_lake_query(create_view_stmt)
-
     bucket = schema_to_zone_bucket_map[schema]
     if path is None:
         path = table_name
     full_path = '/'.join([bucket, path]) + '/'
 
-    col_defs = describe_table(view_name, schema=temp_schema)
-    create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
-                                              full_path, storage_type)
+    temp_schema = 'experimental'
+    view_name = '{}_temp_ctas_view'.format(table_name)
+    create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(
+        temp_schema, view_name, select_stmt)
+
+    hive.run_lake_query(create_view_stmt)
 
     try:
+        col_defs = describe_table(view_name, schema=temp_schema)
+
+        if schema != 'experimental':
+            check_for_comments(
+                table_comment, col_defs['col_name'], col_comments)
+
+        create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
+                                                  full_path, storage_type)
+        handle_existing_table(table_name, schema, overwrite)
         hive.run_lake_query(create_table_ddl)
         insert_overwrite_command = (
             'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
