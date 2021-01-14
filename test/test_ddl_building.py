@@ -172,6 +172,4 @@ def test_struct_of_struct_col_nested_comments():
 
     column_ddl = format_col_defs(col_defs, col_comments)
 
-    print(expected_complex_field_ddl)
-    print(column_ddl)
     assert expected_complex_field_ddl in column_ddl
