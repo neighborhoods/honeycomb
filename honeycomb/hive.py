@@ -33,7 +33,7 @@ def _query_returns_df(query):
     a given query should return a dataframe
     """
     keywords_that_return = ['SELECT', 'DESCRIBE', 'SHOW']
-    if query.split(' ')[0].strip().upper() in keywords_that_return:
+    if query.strip().split(' ')[0].strip().upper() in keywords_that_return:
         return True
     return False
 
