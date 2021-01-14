@@ -39,12 +39,12 @@ a result the average use case of it is very straightforward.
         2. Salesforce - Runs against data stored in the Salesforce Object Manager.
         NOTE: Salesforce uses SOQL, which has different syntax than the lake.
         ```
-        from honeycomb.salesforce import run_sf_query, sf_select_star
+        from honeycomb import salesforce as hcsf
 
         query = "SELECT Id FROM Lead LIMIT 5"
-        df = run_sf_query(query)
+        df = hcsf.run_sf_query(query)
 
-        df_star = sf_select_star(object_name='Lead',
+        df_star = hcsf.sf_select_star(object_name='Lead',
                                  where_clause='WHERE CreatedDate <= 2020-08-01T00:00-00:00',
                                  limit_clause='LIMIT 5')
         ```

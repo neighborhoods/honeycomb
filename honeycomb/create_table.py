@@ -262,12 +262,22 @@ def get_storage_type_from_filename(filename):
 
 def prep_df_and_col_defs(df, dtypes, timezones, schema,
                          storage_type):
+    """
+    Applies any specified dtypes to df and any special handling that certain
+    data types require. Also creates a mapping from the df's pandas dtypes
+    to the corresponding hive dtypes
+    """
     df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
     return df, col_defs
 
 
 def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
+    """
+    Special behavior for DataFrames to be saved in the Avro format.
+    Generates the Avro schema once and uses it twice, to avoid
+    needing two separate generation processes.
+    """
     if avro_schema is None:
         avro_schema = pdx.schema_infer(df)
     tblproperties['avro.schema.literal'] = pprint.pformat(
