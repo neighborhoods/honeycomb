@@ -45,8 +45,8 @@ a result the average use case of it is very straightforward.
         df = hcsf.run_sf_query(query)
 
         df_star = hcsf.sf_select_star(object_name='Lead',
-                                 where_clause='WHERE CreatedDate <= 2020-08-01T00:00-00:00',
-                                 limit_clause='LIMIT 5')
+                                      where_clause='WHERE CreatedDate <= 2020-08-01T00:00-00:00',
+                                      limit_clause='LIMIT 5')
         ```
 
 ### Running Queries
