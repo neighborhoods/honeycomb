@@ -89,7 +89,8 @@ def _hive_handle_join_query(query, addr, configuration):
 
     1. If the user did not specify that complex columns were involved in
        the query, this function will catch the related error and retry
-       with vectorization manually disabled.
+       with vectorization manually disabled. If a query fails for a different
+       reason than expected, the error will be raised normally
     2. This function also removes the prefixed table name from all column names
        except those that would have a naming conflict post-join
     """
@@ -140,6 +141,10 @@ def _presto_query(query, addr, configuration):
     """
     Presto-specific query function
     Note: uses an actual connection, rather than a connection cursor
+
+    The 'configuration' parameter is included solely as a pass-through for
+    compatibility reasons. If it is not 'None' it will raise errors in
+    get_db_connection
     """
     # Presto does not have a notion of a persistent connection, so closing
     # is unnecessary
