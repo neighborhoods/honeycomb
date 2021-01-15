@@ -6,9 +6,7 @@ from honeycomb.connection import get_db_connection
 
 
 col_prefix_regex = r'^.*\.'
-
 hive_vector_option_name = 'hive.vectorized.execution.enabled'
-false_str = 'false'
 
 
 def run_lake_query(query, engine='hive', has_complex_cols_and_joins=False):
@@ -28,7 +26,7 @@ def run_lake_query(query, engine='hive', has_complex_cols_and_joins=False):
             without special treatment. Caused by a hive bug
     """
     if has_complex_cols_and_joins:
-        configuration = {hive_vector_option_name: false_str}
+        configuration = _hive_get_nonvectorized_config()
     else:
         configuration = None
 
@@ -41,6 +39,15 @@ def run_lake_query(query, engine='hive', has_complex_cols_and_joins=False):
     query_fn = query_fns[engine]
     df = query_fn(query, addr, configuration)
     return df
+
+
+def _hive_get_nonvectorized_config(configuration=None):
+    false_str = 'false'
+    if isinstance(configuration, dict):
+        configuration[hive_vector_option_name] = false_str
+    else:
+        configuration = {hive_vector_option_name: false_str}
+    return configuration
 
 
 def _query_returns_df(query):
@@ -59,82 +66,102 @@ def _hive_query(query, addr, configuration):
     Hive-specific query function
     Note: uses an actual connection, rather than a connection cursor
     """
+    is_join_query = 'join' in query.lower()
     if _query_returns_df(query):
-        if 'join' in query.lower():
-            df = _hive_handle_join_query(query, addr, configuration)
-
-        else:
-            df = _hive_run_pd_query_w_context(query, addr, configuration)
-            # Cleans table prefixes from all column names,
-            # which are added by Hive even in non-join queries
-            df.columns = df.columns.str.replace(col_prefix_regex, '')
-
-        return df
+        conn = get_db_connection('hive', addr=addr, cursor=False,
+                                 configuration=configuration)
+        kwargs = {'sql': query, 'con': conn}
+        query_fn = pd.read_sql
+        should_return_df = True
     else:
-        with get_db_connection('hive', addr=addr, cursor=True,
-                               configuration=configuration) as conn:
-            conn.execute(query)
+        conn = get_db_connection('hive', addr=addr, cursor=True,
+                                 configuration=configuration)
+        kwargs = {'operation': query}
+        query_fn = conn.execute
+        should_return_df = False
 
-
-def _hive_handle_join_query(query, addr, configuration):
-    """
-    Applies the special behaviors needed for queries involving
-    the `JOIN` keyword
-
-    Currently, due to a bug in hive 3.1.2, `JOIN` queries if the underlying
-    storage types of the involved tables are the same and complex-type columns
-    are involved. This is because hive is supposed to disable query
-    vectorization if complex columns are involved, but for some reason this
-    is not applied on JOINs involving tables of the same storage type
-
-    1. If the user did not specify that complex columns were involved in
-       the query, this function will catch the related error and retry
-       with vectorization manually disabled. If a query fails for a different
-       reason than expected, the error will be raised normally
-    2. This function also removes the prefixed table name from all column names
-       except those that would have a naming conflict post-join
-    """
     try:
-        df = _hive_run_pd_query_w_context(query, addr, configuration)
-
+        df = query_fn(**kwargs)
     except pd.io.sql.DatabaseError as e:
+        return _hive_check_if_complex_join_error(query, addr, configuration,
+                                                 e, is_join_query)
 
-        if (isinstance(configuration, dict) and
-                configuration[hive_vector_option_name] == 'true'):
-            # This means that the query failed even though vectorization
-            # was disabled, and the failure is caused by something else
-            raise e
+    if should_return_df:
+        if not is_join_query:
+            df.columns = df.columns.str.replace(col_prefix_regex, '')
+        else:
+            # Cleans table prefixes from any non-duplicated column names
+            cols_wo_prefix = df.columns.str.replace(col_prefix_regex, '')
+            duplicated_cols = cols_wo_prefix.duplicated(keep=False)
+            cols_to_rename = dict(zip(df.columns[~duplicated_cols],
+                                      cols_wo_prefix[~duplicated_cols]))
 
-        complex_col_err_substring = (
+            df = df.rename(columns=cols_to_rename)
+        return df
+
+
+def _hive_check_if_complex_join_error(query, addr, configuration,
+                                      e, is_join_query):
+    """
+    Checks if an error raised by _hive_query is the error caused by a hive bug
+    where non-vectorizable queries being run as vectorized (described below).
+    If the user did not specify that complex columns were involved in
+    the query using 'complex_join=True', this function will catch the
+    related error and retry with vectorization manually disabled. If a query
+    fails for a different reason than expected, the error will be
+    raised normally
+
+    Currently, due to a bug in hive 3.1.2, `JOIN` queries raise errors if the
+    underlying storage types of the involved tables are the same and
+    complex-type columns are being selected. This is because hive is supposed
+    to disable query vectorization if complex columns are involved, but for
+    some reason this is not applied on JOINs involving tables of the same
+    storage type. This is seen in honeycomb if both tables use Parquet or
+    both use Avro
+
+    Args:
+        query (str): The query to be run
+        addr (str): The address of the data lake to communicate with
+        configuration (dict<str:str>):
+            Optional settings to apply to the hive connection
+        e (Exception): The exception raised by _hive_query
+        is_join_query (bool):
+            Whether the query being run involves JOINing. If it is not,
+            then the original exception is immediately re-raised, as it
+            is definitively not the error we are trying to catch.
+    """
+    if is_join_query:
+        # This means that the query failed even though vectorization
+        # was disabled, and the failure is caused by something else
+        already_attempted_nonvectorization = (
+            isinstance(configuration, dict) and
+            configuration[hive_vector_option_name] == 'true')
+
+        complex_join_err_substring = (
             'cannot be cast to org.apache.hadoop.'
             'hive.serde2.objectinspector.PrimitiveObjectInspector'
         )
-        if complex_col_err_substring in e.args[0]:
-            print('Query involves selecting complex type columns from a '
-                  'joined table. Due to a hive bug, extra options must be '
-                  'set for this scenario. To speed up query time, set '
-                  '\'has_complex_cols_and_joins\' to True in '
-                  '\'hc.run_lake_query\'if you run such a query again.')
-            configuration[hive_vector_option_name] = false_str
-            return _hive_handle_join_query(query, addr, configuration)
 
-    # Cleans table prefixes from any non-duplicated column names
-    cols_wo_prefix = df.columns.str.replace(col_prefix_regex, '')
-    duplicated_cols = cols_wo_prefix.duplicated(keep=False)
-    cols_to_rename = dict(zip(df.columns[~duplicated_cols],
-                              cols_wo_prefix[~duplicated_cols]))
+        # This means the error raised matches that which is raised from
+        # queries involving complex columns and table joining
+        is_complex_join_err = complex_join_err_substring in e.args[0]
 
-    df = df.rename(columns=cols_to_rename)
-
-    return df
-
-
-def _hive_run_pd_query_w_context(query, addr, configuration):
-    """Runs a hive query within a connection context manager"""
-    with get_db_connection('hive', addr=addr, cursor=False,
-                           configuration=configuration) as conn:
-        df = pd.read_sql(query, conn)
-    return df
+        # If the query has both not already been attempted with vectorization
+        # disabled and the raised does contain the substring that is indicitave
+        # of the error raised by the hive bug
+        if not already_attempted_nonvectorization and is_complex_join_err:
+            disabling_vectorization_msg = (
+                 'Query involves selecting complex type columns from a '
+                 'joined table. Due to a hive bug, extra options must be '
+                 'set for this scenario. To speed up query time, set '
+                 '\'has_complex_cols_and_joins\' to True in '
+                 '\'hc.run_lake_query\'if you run such a query again.'
+            )
+            print(disabling_vectorization_msg)
+            configuration = _hive_get_nonvectorized_config(configuration)
+            return _hive_query(query, addr, configuration)
+    else:
+        raise pd.io.sql.DataBaseError() from e
 
 
 def _presto_query(query, addr, configuration):
