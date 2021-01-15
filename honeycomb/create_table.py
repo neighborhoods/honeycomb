@@ -337,13 +337,17 @@ def ctas(select_stmt, table_name, schema=None,
                 table_comment, col_defs['col_name'], col_comments)
 
         create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
-                                                  full_path, storage_type)
+                                                  col_comments, table_comment,
+                                                  storage_type,
+                                                  partitioned_by=None,
+                                                  full_path=full_path)
         handle_existing_table(table_name, schema, overwrite)
         hive.run_lake_query(create_table_ddl)
         insert_overwrite_command = (
             'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
                 schema, table_name, temp_schema, view_name)
-        hive.run_lake_query(insert_overwrite_command)
+        hive.run_lake_query(insert_overwrite_command,
+                            has_complex_cols_and_joins=True)
     finally:
         hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
 
