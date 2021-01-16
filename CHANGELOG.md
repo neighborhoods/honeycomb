@@ -25,6 +25,7 @@ were, as mentioned above, using different underlying storage formats.
 both Parquet or both Avro - `hive` would, for currently unknown reasons, fail to
 disable vectorization, and it would attempt to run a non-vectorizable
 query as vectorized.
+- Hive ticket created here: https://issues.apache.org/jira/browse/HIVE-24647#
 
 ## [1.5.0] - 2021-01-12
 
