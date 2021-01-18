@@ -347,7 +347,7 @@ def ctas(select_stmt, table_name, schema=None,
             'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
                 schema, table_name, temp_schema, view_name)
         hive.run_lake_query(insert_overwrite_command,
-                            has_complex_cols_and_joins=True)
+                            complex_join=True)
     finally:
         hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
 
