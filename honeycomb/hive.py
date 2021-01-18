@@ -9,7 +9,7 @@ col_prefix_regex = r'^.*\.'
 hive_vector_option_name = 'hive.vectorized.execution.enabled'
 
 
-def run_lake_query(query, engine='hive', has_complex_cols_and_joins=False):
+def run_lake_query(query, engine='hive', complex_join=False):
     """
     General wrapper function around querying with different engines
 
@@ -19,13 +19,13 @@ def run_lake_query(query, engine='hive', has_complex_cols_and_joins=False):
             The querying engine to run the query through
             Use 'presto' for faster, ad-hoc/experimental querie
             Use 'hive' for slower but more robust queries
-        has_complex_cols_and_joins (bool, default False):
+        complex_join (bool, default False):
             Whether the query involves both complex cols and joins. Indicating
             this beforehand will save query time later, as it allows for
             avoiding error handling associated with running a query like that
             without special treatment. Caused by a hive bug
     """
-    if has_complex_cols_and_joins:
+    if complex_join:
         configuration = _hive_get_nonvectorized_config()
     else:
         configuration = None
@@ -154,8 +154,8 @@ def _hive_check_if_complex_join_error(query, addr, configuration,
                  'Query involves selecting complex type columns from a '
                  'joined table. Due to a hive bug, extra options must be '
                  'set for this scenario. To speed up query time, set '
-                 '\'has_complex_cols_and_joins\' to True in '
-                 '\'hc.run_lake_query\'if you run such a query again.'
+                 '\'complex_join\' to True in \'hc.run_lake_query\' '
+                 'if you run such a query again.'
             )
             print(disabling_vectorization_msg)
             configuration = _hive_get_nonvectorized_config(configuration)
