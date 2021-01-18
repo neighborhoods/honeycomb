@@ -325,6 +325,11 @@ def ctas(select_stmt, table_name, schema=None,
     """
     if schema != 'experimental':
         check_for_allowed_overwrite(overwrite)
+    if schema == 'curated' and not os.getenv('HC_PROD_ENV'):
+        raise ValueError(
+            'CTAS functionality is currently disabled in the curated zone. '
+            'Contact Data Engineering for further information.'
+        )
 
     bucket = schema_to_zone_bucket_map[schema]
     path = validate_table_path(path, table_name)
