@@ -1,8 +1,10 @@
 import os
+import re
 
 import pandas as pd
 
 from honeycomb.connection import get_db_connection
+from honeycomb.meta import get_table_metadata
 
 
 col_prefix_regex = r'^.*\.'
@@ -29,6 +31,17 @@ def run_lake_query(query, engine='hive', complex_join=False):
         configuration = _hive_get_nonvectorized_config()
     else:
         configuration = None
+
+    if 'INSERT OVERWRITE' in query:
+        schema, table_name = re.search(
+            r'INSERT OVERWRITE (?:TABLE )?(\w+)\.(\w+)', query).groups()
+
+        table_metadata = get_table_metadata(table_name, schema)
+        if not re.match(r'^\w+$', table_metadata['path'], flags=re.ASCII):
+            raise ValueError(
+                'The path of the table to be written into makes using an '
+                'INSERT OVERWRITE command unsafe. Please recreate the target '
+                'table using a safe S3 path and try again.')
 
     addr = os.getenv('HC_LAKE_ADDRESS', 'localhost')
 

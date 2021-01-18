@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import os
 import pprint
+import re
 import sys
 
 import pandavro as pdx
@@ -103,8 +104,8 @@ def create_table_from_df(df, table_name, schema=None,
 
     handle_existing_table(table_name, schema, overwrite)
 
-    if path is None:
-        path = table_name
+    path = validate_table_path(path, table_name)
+
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
     path = meta.ensure_path_ends_w_slash(path)
@@ -173,6 +174,14 @@ def handle_existing_table(table_name, schema, overwrite):
                     table_name=table_name))
         else:
             __nuke_table(table_name, schema)
+
+
+def validate_table_path(path, table_name):
+    if path is None:
+        path = table_name
+    if not re.match(r'^\w+/$', path, flags=re.ASCII):
+        raise ValueError('Invalid table path provided.')
+    return path
 
 
 def check_for_comments(table_comment, columns, col_comments):
@@ -318,8 +327,8 @@ def ctas(select_stmt, table_name, schema=None,
         check_for_allowed_overwrite(overwrite)
 
     bucket = schema_to_zone_bucket_map[schema]
-    if path is None:
-        path = table_name
+    path = validate_table_path(path, table_name)
+
     full_path = '/'.join([bucket, path]) + '/'
 
     temp_schema = 'experimental'
