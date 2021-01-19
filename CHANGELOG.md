@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- CTAS functionality now works with `JOIN` queries that involve complex columns
+
+### Notes
+- Discovered a `hive` bug, in v3.1.2. Performing queries that `SELECT` complex-type columns from a
+`JOIN` clause only works if the two tables are of different underlying file types -
+in the context of filetypes that `honeycomb` supports complex type columns with,
+that would mean one table using Avro, and the other using Parquet.
+- This is because `hive` attempts to run the query as vectorized when it should not.
+- Query vectorization in `hive` only works on queries that exclusively involve
+primitive-type columns. If `hive` sees that a complex-type column is
+involved in a query, it is supposed to disable vectorization for that query.
+- When the query involves a `JOIN`, it will properly do so if the tables
+were, as mentioned above, using different underlying storage formats.
+- If the tables are using the same storage format though - for `honeycomb`,
+both Parquet or both Avro - `hive` would, for currently unknown reasons, fail to
+disable vectorization, and it would attempt to run a non-vectorizable
+query as vectorized.
+- Hive ticket created here: https://issues.apache.org/jira/browse/HIVE-24647#
+
 ## [1.5.0] - 2021-01-12
 
 ### Added

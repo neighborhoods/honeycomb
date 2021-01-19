@@ -1,7 +1,8 @@
 from pyhive import hive, presto
 
 
-def get_db_connection(engine='hive', addr='localhost', cursor=True):
+def get_db_connection(engine='hive', addr='localhost', cursor=True,
+                      configuration=None):
     """
     Initializes and returns a connection to the specified database engine.
 
@@ -16,12 +17,16 @@ def get_db_connection(engine='hive', addr='localhost', cursor=True):
         port = 10000
         engine_module = hive
     elif engine == 'presto':
+        if configuration is not None:
+            raise ValueError(
+                'Non-default configurations with Presto are not supported.')
         port = 8889
         engine_module = presto
     else:
         raise ValueError('Specified engine is not supported: ' + engine)
 
-    conn = engine_module.connect(addr, port=port, username='hadoop')
+    conn = engine_module.connect(addr, port=port, username='hadoop',
+                                 configuration=configuration)
     if cursor:
         conn = conn.cursor()
     return conn

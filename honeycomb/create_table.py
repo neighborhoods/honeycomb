@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import os
 import pprint
+import re
 import sys
 
 import pandavro as pdx
@@ -103,11 +104,9 @@ def create_table_from_df(df, table_name, schema=None,
 
     handle_existing_table(table_name, schema, overwrite)
 
-    if path is None:
-        path = table_name
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
-    path = meta.ensure_path_ends_w_slash(path)
+    path = validate_table_path(path, table_name)
 
     bucket = schema_to_zone_bucket_map[schema]
 
@@ -173,6 +172,15 @@ def handle_existing_table(table_name, schema, overwrite):
                     table_name=table_name))
         else:
             __nuke_table(table_name, schema)
+
+
+def validate_table_path(path, table_name):
+    if path is None:
+        path = table_name
+    path = meta.ensure_path_ends_w_slash(path)
+    if not re.match(r'^\w+/$', path, flags=re.ASCII):
+        raise ValueError('Invalid table path provided.')
+    return path
 
 
 def check_for_comments(table_comment, columns, col_comments):
@@ -262,12 +270,22 @@ def get_storage_type_from_filename(filename):
 
 def prep_df_and_col_defs(df, dtypes, timezones, schema,
                          storage_type):
+    """
+    Applies any specified dtypes to df and any special handling that certain
+    data types require. Also creates a mapping from the df's pandas dtypes
+    to the corresponding hive dtypes
+    """
     df = dtype_mapping.special_dtype_handling(df, dtypes, timezones, schema)
     col_defs = dtype_mapping.map_pd_to_db_dtypes(df, storage_type)
     return df, col_defs
 
 
 def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
+    """
+    Special behavior for DataFrames to be saved in the Avro format.
+    Generates the Avro schema once and uses it twice, to avoid
+    needing two separate generation processes.
+    """
     if avro_schema is None:
         avro_schema = pdx.schema_infer(df)
     tblproperties['avro.schema.literal'] = pprint.pformat(
@@ -306,10 +324,15 @@ def ctas(select_stmt, table_name, schema=None,
     """
     if schema != 'experimental':
         check_for_allowed_overwrite(overwrite)
+    if schema == 'curated' and not os.getenv('HC_PROD_ENV'):
+        raise ValueError(
+            'Non-production CTAS functionality is currently disabled in the '
+            'curated zone. Contact Data Engineering for further information.'
+        )
 
     bucket = schema_to_zone_bucket_map[schema]
-    if path is None:
-        path = table_name
+    path = validate_table_path(path, table_name)
+
     full_path = '/'.join([bucket, path]) + '/'
 
     temp_schema = 'experimental'
@@ -327,13 +350,17 @@ def ctas(select_stmt, table_name, schema=None,
                 table_comment, col_defs['col_name'], col_comments)
 
         create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
-                                                  full_path, storage_type)
+                                                  col_comments, table_comment,
+                                                  storage_type,
+                                                  partitioned_by=None,
+                                                  full_path=full_path)
         handle_existing_table(table_name, schema, overwrite)
         hive.run_lake_query(create_table_ddl)
         insert_overwrite_command = (
             'INSERT OVERWRITE TABLE {}.{} SELECT * FROM {}.{}').format(
                 schema, table_name, temp_schema, view_name)
-        hive.run_lake_query(insert_overwrite_command)
+        hive.run_lake_query(insert_overwrite_command,
+                            complex_join=True)
     finally:
         hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
 
