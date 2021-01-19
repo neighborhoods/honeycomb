@@ -32,12 +32,19 @@ def run_lake_query(query, engine='hive', complex_join=False):
     else:
         configuration = None
 
-    if 'INSERT OVERWRITE' in query:
+    insert_overwrite_pattern = r'INSERT *OVERWRITE'
+    if re.match(insert_overwrite_pattern, query, flags=re.IGNORECASE):
+        if len(re.findall(insert_overwrite_pattern, query,
+                          flags=re.IGNORECASE)) > 1:
+            raise ValueError(
+                'Multi-Insert Statements are currently not supported by '
+                'honeycomb for bucket integrity reasons.'
+            )
         schema, table_name = re.search(
             r'INSERT OVERWRITE (?:TABLE )?(\w+)\.(\w+)', query).groups()
 
         table_metadata = get_table_metadata(table_name, schema)
-        if not re.match(r'^\w+$', table_metadata['path'], flags=re.ASCII):
+        if not _hive_check_valid_table_path(table_metadata['path']):
             raise ValueError(
                 'The path of the table to be written into makes using an '
                 'INSERT OVERWRITE command unsafe. Please recreate the target '
@@ -175,6 +182,11 @@ def _hive_check_if_complex_join_error(query, addr, configuration,
             return _hive_query(query, addr, configuration)
     else:
         raise pd.io.sql.DataBaseError() from e
+
+
+def _hive_check_valid_table_path(path):
+    valid_path_pattern = r'^\w+[-/\w]*$'
+    return bool(re.match(valid_path_pattern, path, flags=re.ASCII))
 
 
 def _presto_query(query, addr, configuration):
