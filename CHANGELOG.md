@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- CTAS functionality now works with `JOIN` queries that involve complex columns
+- Bugfix: CTAS functionality now works with `JOIN` queries that involve complex columns
+- Bugfix: `_query_returns_df` now properly identifies query types even when
+the query contains leading whitespace
 
 ### Notes
 - Discovered a `hive` bug, in v3.1.2. Performing queries that `SELECT` complex-type columns from a
