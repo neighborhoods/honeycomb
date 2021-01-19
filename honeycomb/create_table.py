@@ -104,11 +104,9 @@ def create_table_from_df(df, table_name, schema=None,
 
     handle_existing_table(table_name, schema, overwrite)
 
-    path = validate_table_path(path, table_name)
-
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
-    path = meta.ensure_path_ends_w_slash(path)
+    path = validate_table_path(path, table_name)
 
     bucket = schema_to_zone_bucket_map[schema]
 
@@ -179,6 +177,7 @@ def handle_existing_table(table_name, schema, overwrite):
 def validate_table_path(path, table_name):
     if path is None:
         path = table_name
+    path = meta.ensure_path_ends_w_slash(path)
     if not re.match(r'^\w+/$', path, flags=re.ASCII):
         raise ValueError('Invalid table path provided.')
     return path
