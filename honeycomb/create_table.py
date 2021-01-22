@@ -98,7 +98,7 @@ def create_table_from_df(df, table_name, schema=None,
                 'If using "partitioned_by" and "auto_upload_df" is True, '
                 'values must be passed to "partition_values" as well.')
 
-    if schema != 'experimental':
+    if schema == 'curated':
         check_for_comments(table_comment, df.columns, col_comments)
         check_for_allowed_overwrite(overwrite)
 
@@ -322,13 +322,14 @@ def ctas(select_stmt, table_name, schema=None,
             Whether to overwrite or fail if a table already exists with
             the intended name of the new table in the selected schema
     """
-    if schema != 'experimental':
+    if schema == 'curated':
         check_for_allowed_overwrite(overwrite)
-    if schema == 'curated' and not os.getenv('HC_PROD_ENV'):
-        raise ValueError(
-            'Non-production CTAS functionality is currently disabled in the '
-            'curated zone. Contact Data Engineering for further information.'
-        )
+        if  not os.getenv('HC_PROD_ENV'):
+            raise ValueError(
+                'Non-production CTAS functionality is currently disabled in '
+                'the curated zone. Contact Data Engineering for '
+                'further information.'
+            )
 
     bucket = schema_to_zone_bucket_map[schema]
     path = validate_table_path(path, table_name)
@@ -401,7 +402,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
 
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
-    if schema != 'experimental':
+    if schema == 'curated':
         check_for_comments(table_comment, df.columns, col_comments)
         if not os.getenv('HC_PROD_ENV'):
             raise ValueError(
