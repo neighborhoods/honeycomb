@@ -346,7 +346,7 @@ def ctas(select_stmt, table_name, schema=None,
     try:
         col_defs = describe_table(view_name, schema=temp_schema)
 
-        if schema != 'experimental':
+        if schema == 'curated':
             check_for_comments(
                 table_comment, col_defs['col_name'], col_comments)
 
