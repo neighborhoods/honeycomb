@@ -324,7 +324,7 @@ def ctas(select_stmt, table_name, schema=None,
     """
     if schema == 'curated':
         check_for_allowed_overwrite(overwrite)
-        if  not os.getenv('HC_PROD_ENV'):
+        if not os.getenv('HC_PROD_ENV'):
             raise ValueError(
                 'Non-production CTAS functionality is currently disabled in '
                 'the curated zone. Contact Data Engineering for '
