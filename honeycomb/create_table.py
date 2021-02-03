@@ -10,7 +10,8 @@ import river as rv
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
 from honeycomb.describe_table import describe_table
-from honeycomb.ddl_building import build_create_table_ddl
+from honeycomb.ddl_building import (build_create_table_ddl,
+                                    add_comments_to_avro_schema)
 from honeycomb.__danger import __nuke_table
 
 
@@ -280,7 +281,8 @@ def prep_df_and_col_defs(df, dtypes, timezones, schema,
     return df, col_defs
 
 
-def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
+def handle_avro_filetype(df, storage_settings, tblproperties,
+                         avro_schema, col_comments):
     """
     Special behavior for DataFrames to be saved in the Avro format.
     Generates the Avro schema once and uses it twice, to avoid
@@ -288,6 +290,9 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
     """
     if avro_schema is None:
         avro_schema = pdx.schema_infer(df)
+    if col_comments is not None:
+        avro_schema = add_comments_to_avro_schema(avro_schema, col_comments)
+
     tblproperties['avro.schema.literal'] = pprint.pformat(
         avro_schema).replace('\'', '"')
     # So pandavro doesn't have to infer the schema a second time
