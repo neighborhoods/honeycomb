@@ -1,4 +1,3 @@
-import json
 import re
 
 from honeycomb import meta
@@ -384,19 +383,14 @@ def find_matching_bracket(col_defs, start_ind):
 
 
 def add_comments_to_avro_schema(avro_schema, col_comments):
-    col_comments = restructure_comments_for_avro(col_comments)
     for field in avro_schema['fields']:
         field_name = field['name']
         if field_name in col_comments:
             field_comments = col_comments[field_name]
-            if isinstance(field_comments, str):
-                atomic_comment = field_comments
-            elif isinstance(field_comments, dict):
-                atomic_comment = field_comments['comment']
+            atomic_comment = field_comments['comment']
             field['doc'] = atomic_comment.replace('"', '\'')
 
             field_type = field['type']
-
             if isinstance(field_type, list):
                 for i in range(len(field_type)):
                     if field_type[i] != 'null':
@@ -409,10 +403,9 @@ def add_comments_to_avro_schema(avro_schema, col_comments):
                 if 'items' in non_null_field_type:
                     non_null_field_type = non_null_field_type['items']
                 add_comments_to_avro_schema(
-                    non_null_field_type['fields'],
+                    non_null_field_type,
                     field_comments['subfields'])
 
-    avro_schema = json.dumps(avro_schema, indent=4).replace("'", "\\\\'")
     return avro_schema
 
 
