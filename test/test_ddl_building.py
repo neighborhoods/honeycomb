@@ -183,7 +183,9 @@ def test_add_comments_to_avro_schema():
             {'name': 'b', 'type': 'string'},
             {'name': 'c', 'type': {
                 'fields': [{'name': 'sub_c', 'type': 'int'}]}},
-            {'name': 'd', 'type': 'double'}
+            {'name': 'd', 'type': {
+                'items': {'fields': [{'name': 'sub_d', 'type': 'double'}]}
+            }}
         ]
     }
 
@@ -192,13 +194,16 @@ def test_add_comments_to_avro_schema():
     c_comment = 'column_c'
     sub_c_comment = 'subcol of column c'
     d_comment = 'column_d'
+    sub_d_comment = 'subcol of column d'
     col_comments = {
         'a': {'comment': a_comment},
         'b': {'comment': b_comment},
         'c': {'comment': c_comment, 'subfields': {
             'sub_c': {'comment': sub_c_comment}
         }},
-        'd': {'comment': d_comment}
+        'd': {'comment': d_comment, 'subfields': {
+            'sub_d': {'comment': sub_d_comment}
+        }}
     }
 
     avro_schema = add_comments_to_avro_schema(avro_schema, col_comments)
@@ -210,3 +215,5 @@ def test_add_comments_to_avro_schema():
 
     assert (
         avro_schema['fields'][2]['type']['fields'][0]['doc'] == sub_c_comment)
+    assert (
+        avro_schema['fields'][3]['type']['fields'][0]['doc'] == sub_d_comment)
