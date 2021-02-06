@@ -1,7 +1,8 @@
 import pandas as pd
 
 from honeycomb.ddl_building import (add_comments_to_col_defs,
-                                    format_col_defs)
+                                    format_col_defs,
+                                    add_comments_to_avro_schema)
 
 
 def test_add_comments_to_col_defs(test_df):
@@ -173,3 +174,39 @@ def test_struct_of_struct_col_nested_comments():
     column_ddl = format_col_defs(col_defs, col_comments)
 
     assert expected_complex_field_ddl in column_ddl
+
+
+def test_add_comments_to_avro_schema():
+    avro_schema = {
+        'fields': [
+            {'name': 'a', 'type': 'int'},
+            {'name': 'b', 'type': 'string'},
+            {'name': 'c', 'type': {
+                'fields': [{'name': 'sub_c', 'type': 'int'}]}},
+            {'name': 'd', 'type': 'double'}
+        ]
+    }
+
+    a_comment = 'column_a'
+    b_comment = 'column_b'
+    c_comment = 'column_c'
+    sub_c_comment = 'subcol of column c'
+    d_comment = 'column_d'
+    col_comments = {
+        'a': {'comment': a_comment},
+        'b': {'comment': b_comment},
+        'c': {'comment': c_comment, 'subfields': {
+            'sub_c': {'comment': sub_c_comment}
+        }},
+        'd': {'comment': d_comment}
+    }
+
+    avro_schema = add_comments_to_avro_schema(avro_schema, col_comments)
+    print(avro_schema)
+    assert avro_schema['fields'][0]['doc'] == a_comment
+    assert avro_schema['fields'][1]['doc'] == b_comment
+    assert avro_schema['fields'][2]['doc'] == c_comment
+    assert avro_schema['fields'][3]['doc'] == d_comment
+
+    assert (
+        avro_schema['fields'][2]['type']['fields'][0]['doc'] == sub_c_comment)
