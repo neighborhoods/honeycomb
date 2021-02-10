@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bugfix: CTAS can now overwrite a table that it is selecting from. Previously,
+if CTAS was used to overwrite a table that was in the select statement,
+the data from that source table would not be in the resulting table
+
 ## [1.5.2] - 2021-01-22
 
 ### Changed
