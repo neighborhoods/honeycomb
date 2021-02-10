@@ -409,7 +409,6 @@ def ctas(select_stmt, table_name, schema=None,
             __nuke_table(source_table_name, schema)
 
 
-
 def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
                                table_comment=None, col_comments=None,
                                timezones=None, copy_df=True):
