@@ -334,16 +334,30 @@ def ctas(select_stmt, table_name, schema=None,
     bucket = schema_to_zone_bucket_map[schema]
     path = validate_table_path(path, table_name)
 
-    full_path = '/'.join([bucket, path]) + '/'
+    full_path = '/'.join([bucket, path])
 
-    temp_schema = 'experimental'
-    view_name = '{}_temp_ctas_view'.format(table_name)
-    create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(
-        temp_schema, view_name, select_stmt)
-
-    hive.run_lake_query(create_view_stmt)
+    table_rename_template = 'ALTER TABLE {}.{} RENAME TO {}.{}'
+    if '{}.{}'.format(schema, table_name) in select_stmt:
+        source_table_name = table_name + '_temp_ctas_rename'
+        select_stmt = select_stmt.replace(
+            '{}.{}'.format(schema, table_name),
+            '{}.{}'.format(schema, source_table_name)
+        )
+        hive.run_lake_query(table_rename_template.format(
+            schema, table_name, schema, source_table_name
+        ))
+        table_renamed = True
+    else:
+        source_table_name = table_name
+        table_renamed = False
 
     try:
+        temp_schema = 'experimental'
+        view_name = '{}_temp_ctas_view'.format(table_name)
+        create_view_stmt = 'CREATE VIEW {}.{} AS {}'.format(
+            temp_schema, view_name, select_stmt)
+        hive.run_lake_query(create_view_stmt)
+
         col_defs = describe_table(view_name, schema=temp_schema)
 
         if schema == 'curated':
@@ -362,8 +376,31 @@ def ctas(select_stmt, table_name, schema=None,
                 schema, table_name, temp_schema, view_name)
         hive.run_lake_query(insert_overwrite_command,
                             complex_join=True)
+    except Exception as e:
+        if table_renamed:
+            hive.run_lake_query(table_rename_template.format(
+                schema, source_table_name, schema, table_name
+            ))
+        raise e
+
     finally:
-        hive.run_lake_query('DROP VIEW {}.{}'.format(temp_schema, view_name))
+        hive.run_lake_query(
+            'DROP VIEW IF EXISTS {}.{}'.format(temp_schema, view_name))
+
+    # If the source table had to be renamed, but it still shares
+    # a storage location with the new table, we just drop it.
+    # Otherwise, we nuke it.
+    if table_renamed:
+        source_metadata = meta.get_table_metadata(source_table_name,
+                                                  schema)
+        source_path = meta.ensure_path_ends_w_slash(
+            source_metadata['path'])
+        if source_path == path:
+            hive.run_lake_query(
+                'DROP TABLE {}.{}'.format(schema, source_table_name))
+        else:
+            __nuke_table(source_table_name, schema)
+
 
 
 def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
