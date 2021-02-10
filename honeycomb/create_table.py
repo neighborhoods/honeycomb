@@ -338,15 +338,22 @@ def ctas(select_stmt, table_name, schema=None,
 
     table_rename_template = 'ALTER TABLE {}.{} RENAME TO {}.{}'
     if '{}.{}'.format(schema, table_name) in select_stmt:
-        source_table_name = table_name + '_temp_ctas_rename'
-        select_stmt = select_stmt.replace(
-            '{}.{}'.format(schema, table_name),
-            '{}.{}'.format(schema, source_table_name)
-        )
-        hive.run_lake_query(table_rename_template.format(
-            schema, table_name, schema, source_table_name
-        ))
-        table_renamed = True
+        if overwrite:
+            source_table_name = table_name + '_temp_ctas_rename'
+            select_stmt = select_stmt.replace(
+                '{}.{}'.format(schema, table_name),
+                '{}.{}'.format(schema, source_table_name)
+            )
+            hive.run_lake_query(table_rename_template.format(
+                schema, table_name, schema, source_table_name
+            ))
+            table_renamed = True
+        else:
+            raise ValueError(
+                'CTAS functionality must have \'overwrite\' set to True '
+                'in order to overwrite one of the source tables of the '
+                'SELECT statement.'
+            )
     else:
         source_table_name = table_name
         table_renamed = False
