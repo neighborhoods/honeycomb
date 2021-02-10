@@ -1,4 +1,6 @@
-from honeycomb import check, hive
+import logging
+
+from honeycomb import check, hive, inform
 
 
 def add_partition(table_name, schema, partition_values):
@@ -17,11 +19,11 @@ def add_partition(table_name, schema, partition_values):
                 ', '.join(partition_strings),
                 partition_path)
         )
-        print(add_partition_query)
+        inform(add_partition_query)
 
         hive.run_lake_query(add_partition_query, engine='hive')
     else:
-        print(
+        logging.warn(
             'Partition {} already exists in table.'.format(partition_strings))
 
     return partition_path

@@ -1,3 +1,5 @@
+from .config import get_option, set_option
+from .inform import inform
 from .hive import run_lake_query
 from .append_table import append_df_to_table
 from .create_table import (
@@ -21,6 +23,9 @@ __all__ = [
     'ctas',
     'describe_table',
     'get_table_storage_type_from_metadata',
+    'get_option',
+    'set_option',
+    'inform',
     'bigquery',
     'salesforce',
     '__title__',

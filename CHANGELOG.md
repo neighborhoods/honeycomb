@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Session-level configuration Functionality
+- Verbosity option: disable all non-logging output, for use in notebooks or pipelines.
+
 ## [1.5.2] - 2021-01-22
 
 ### Changed
