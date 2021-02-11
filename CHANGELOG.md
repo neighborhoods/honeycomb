@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Session-level configuration Functionality
+- Verbosity option: disable all non-logging output, for use in notebooks or pipelines.
+
 ### Changed
 - `pd.io.sql.DatabaseError`s will now be raised properly when raised in an un-handleable
 way from within `_hive_query`

@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import logging
 import json
 import os
 import re
@@ -7,7 +8,7 @@ import sys
 import pandavro as pdx
 import river as rv
 
-from honeycomb import check, dtype_mapping, hive, meta
+from honeycomb import check, dtype_mapping, hive, inform, meta
 from honeycomb.alter_table import add_partition
 from honeycomb.describe_table import describe_table
 from honeycomb.ddl_building import (build_create_table_ddl,
@@ -135,7 +136,7 @@ def create_table_from_df(df, table_name, schema=None,
                                               col_comments, table_comment,
                                               storage_type, partitioned_by,
                                               full_path, tblproperties)
-    print(create_table_ddl)
+    inform(create_table_ddl)
     hive.run_lake_query(create_table_ddl, engine='hive')
 
     if partitioned_by:
@@ -156,7 +157,7 @@ def confirm_ordered_dicts():
     if python_version.major >= 3:
         if python_version.minor >= 6:
             if python_version.minor == 6:
-                print(
+                logging.info(
                     'You are using Python 3.6. Dictionaries are ordered in '
                     '3.6, but only as a side effect. It is recommended to '
                     'upgrade to 3.7 to have guaranteeably ordered dicts.')
@@ -463,7 +464,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
                                               partitioned_by=None,
                                               full_path=full_path,
                                               tblproperties=tblproperties)
-    print(create_table_ddl)
+    inform(create_table_ddl)
     drop_table_stmt = 'DROP TABLE IF EXISTS {}.{}'.format(schema, table_name)
 
     _ = rv.write(df, path, bucket, show_progressbar=False, **storage_settings)

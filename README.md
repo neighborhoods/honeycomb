@@ -158,3 +158,11 @@ import honeycomb as hc
 
 hc.describe_table('test_table', schema='curated', include_metadata=True)
 ```
+
+### Session-Level Configuration
+`honeycomb` outputs certain messages to the screen to help interactive users
+maintain awareness of what is being performed behind-the-scenes. If this
+is not desirable (as may be the case for notebooks, pipelines, usage of
+`honeycomb` within other packages, etc.), all non-logging output can be
+disabled with `hc.set_option('verbose', False)`. This also sets the
+corresponding `verbose` option in `river` to False.
