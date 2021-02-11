@@ -17,7 +17,6 @@ way from within `_hive_query`
 - Column comments in Avro tables are now injected into the Avro schema, so they will
 properly be added to a Hive metastore.
 
-
 ## [1.5.2] - 2021-01-22
 
 ### Changed
