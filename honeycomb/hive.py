@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -177,11 +178,11 @@ def _hive_check_if_complex_join_error(query, addr, configuration,
                  '\'complex_join\' to True in \'hc.run_lake_query\' '
                  'if you run such a query again.'
             )
-            print(disabling_vectorization_msg)
+            logging.warn(disabling_vectorization_msg)
             configuration = _hive_get_nonvectorized_config(configuration)
             return _hive_query(query, addr, configuration)
     else:
-        raise pd.io.sql.DataBaseError() from e
+        raise e
 
 
 def _hive_check_valid_table_path(path):

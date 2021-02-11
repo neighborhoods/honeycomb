@@ -3,6 +3,8 @@ import os
 import boto3
 import pandas as pd
 
+from honeycomb import inform
+
 
 def get_secret(key):
     client = boto3.client('ssm', os.getenv('AWS_DEFAULT_REGION'))
@@ -83,7 +85,7 @@ def sf_select_star(object_name, where_clause=None, limit_clause=None, sf=None):
     if sf is None:
         sf = get_salesforce_conn()
     soql = gen_select_star_query(object_name, where_clause, limit_clause, sf)
-    print(soql)
+    inform(soql)
 
     return run_sf_query(soql, sf)
 
