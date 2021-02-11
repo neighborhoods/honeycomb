@@ -182,7 +182,7 @@ def _hive_check_if_complex_join_error(query, addr, configuration,
             configuration = _hive_get_nonvectorized_config(configuration)
             return _hive_query(query, addr, configuration)
     else:
-        raise pd.io.sql.DataBaseError() from e
+        raise e
 
 
 def _hive_check_valid_table_path(path):

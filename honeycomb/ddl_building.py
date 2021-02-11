@@ -380,3 +380,54 @@ def find_matching_bracket(col_defs, start_ind):
         'No matching bracket found for {} at character {}.'.format(
             col_defs[start_ind], start_ind)
         )
+
+
+def add_comments_to_avro_schema(avro_schema, col_comments):
+    for field in avro_schema['fields']:
+        field_name = field['name']
+        if field_name in col_comments:
+            field_comments = col_comments[field_name]
+            atomic_comment = field_comments['comment']
+            field['doc'] = atomic_comment.replace('"', '\'')
+
+            field_type = field['type']
+            if isinstance(field_type, list):
+                for i in range(len(field_type)):
+                    if field_type[i] != 'null':
+                        final_type_idx = i
+                non_null_field_type = field_type[final_type_idx]
+            else:
+                non_null_field_type = field_type
+
+            if isinstance(non_null_field_type, dict):
+                if 'items' in non_null_field_type:
+                    non_null_field_type = non_null_field_type['items']
+                add_comments_to_avro_schema(
+                    non_null_field_type,
+                    field_comments['subfields'])
+
+    return avro_schema
+
+
+def restructure_comments_for_avro(col_comments):
+    subfields_key = 'subfields'
+
+    avro_style_comments = {}
+    col_comments = {col_name: col_comments[col_name]
+                    for col_name in sorted(col_comments)}
+    for col_name, col_comment in col_comments.items():
+        field_names = col_name.split('.')
+        current_fields = avro_style_comments
+        while len(field_names) > 0:
+            next_level_field = field_names.pop(0)
+
+            if next_level_field not in current_fields:
+                current_fields[next_level_field] = {subfields_key: {}}
+
+            current_fields = current_fields[next_level_field]
+            if len(field_names) > 0:
+                current_fields = current_fields[subfields_key]
+
+        current_fields['comment'] = col_comment
+
+    return avro_style_comments
