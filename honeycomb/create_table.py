@@ -1,6 +1,6 @@
 from collections import OrderedDict
+import json
 import os
-import pprint
 import re
 import sys
 
@@ -10,7 +10,9 @@ import river as rv
 from honeycomb import check, dtype_mapping, hive, meta
 from honeycomb.alter_table import add_partition
 from honeycomb.describe_table import describe_table
-from honeycomb.ddl_building import build_create_table_ddl
+from honeycomb.ddl_building import (build_create_table_ddl,
+                                    restructure_comments_for_avro,
+                                    add_comments_to_avro_schema)
 from honeycomb.__danger import __nuke_table
 
 
@@ -126,7 +128,7 @@ def create_table_from_df(df, table_name, schema=None,
     tblproperties = {}
     if storage_type == 'avro':
         storage_settings, tblproperties = handle_avro_filetype(
-            df, storage_settings, tblproperties, avro_schema)
+            df, storage_settings, tblproperties, avro_schema, col_comments)
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,
@@ -280,7 +282,8 @@ def prep_df_and_col_defs(df, dtypes, timezones, schema,
     return df, col_defs
 
 
-def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
+def handle_avro_filetype(df, storage_settings, tblproperties,
+                         avro_schema, col_comments):
     """
     Special behavior for DataFrames to be saved in the Avro format.
     Generates the Avro schema once and uses it twice, to avoid
@@ -288,8 +291,13 @@ def handle_avro_filetype(df, storage_settings, tblproperties, avro_schema):
     """
     if avro_schema is None:
         avro_schema = pdx.schema_infer(df)
-    tblproperties['avro.schema.literal'] = pprint.pformat(
-        avro_schema).replace('\'', '"')
+    if col_comments is not None:
+        avro_col_comments = restructure_comments_for_avro(col_comments)
+        avro_schema = add_comments_to_avro_schema(avro_schema,
+                                                  avro_col_comments)
+    tblproperties['avro.schema.literal'] = json.dumps(
+        avro_schema, indent=4).replace("'", "\\\\'")
+
     # So pandavro doesn't have to infer the schema a second time
     storage_settings['schema'] = avro_schema
 
@@ -446,7 +454,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     tblproperties = {}
     if storage_type == 'avro':
         storage_settings, tblproperties = handle_avro_filetype(
-            df, storage_settings, tblproperties)
+            df, storage_settings, tblproperties, col_comments)
 
     full_path = '/'.join([bucket, path])
     create_table_ddl = build_create_table_ddl(table_name, schema, col_defs,

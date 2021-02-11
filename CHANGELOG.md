@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `pd.io.sql.DatabaseError`s will now be raised properly when raised in an un-handleable
+way from within `_hive_query`
+- Column comments in Avro tables are now injected into the Avro schema, so they will
+properly be added to a Hive metastore.
+
 ## [1.5.2] - 2021-01-22
 
 ### Changed
