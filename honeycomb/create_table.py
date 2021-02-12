@@ -331,6 +331,8 @@ def ctas(select_stmt, table_name, schema=None,
             Whether to overwrite or fail if a table already exists with
             the intended name of the new table in the selected schema
     """
+    table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
     if schema == 'curated':
         check_for_allowed_overwrite(overwrite)
         if not os.getenv('HC_PROD_ENV'):
@@ -349,10 +351,10 @@ def ctas(select_stmt, table_name, schema=None,
     if '{}.{}'.format(schema, table_name) in select_stmt:
         if overwrite:
             source_table_name = table_name + '_temp_ctas_rename'
-            select_stmt = select_stmt.replace(
-                '{}.{}'.format(schema, table_name),
-                '{}.{}'.format(schema, source_table_name)
-            )
+            select_stmt = re.sub(
+                r'{}\.{}([\s,.]|$)'.format(schema, table_name),
+                r'{}.{}\1'.format(schema, source_table_name),
+                select_stmt)
             hive.run_lake_query(table_rename_template.format(
                 schema, table_name, schema, source_table_name
             ))
