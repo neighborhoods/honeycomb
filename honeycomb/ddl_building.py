@@ -440,7 +440,7 @@ def add_comments_to_avro_schema(avro_schema, col_comments):
                             non_null_field_type['items'])
 
             # If non_null_field_type is still a dictionary after unnesting
-            # any and all arrays, then there is a nested record type that
+            # any and all arrays, then there is a nested struct type that
             # must be iterated through
             if isinstance(non_null_field_type, dict):
                 add_comments_to_avro_schema(
