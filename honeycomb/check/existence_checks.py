@@ -2,6 +2,9 @@ from honeycomb import hive
 
 
 def check_schema_existence(schema):
+    """
+    Checks if a given schema exists in the lake
+    """
     show_schemas_query = (
         'SHOW SCHEMAS LIKE \'{schema}\''.format(schema=schema)
     )
@@ -46,6 +49,7 @@ def check_partition_existence(table_name, schema,
         schema (str): Which schema the table is in
         table_name (str): The name of the table to check in
         partition_values (dict<str:str>):
+            A mapping from partition keys to the values being checked for
 
     Returns:
         bool: Whether or not the specified partition exists in the table

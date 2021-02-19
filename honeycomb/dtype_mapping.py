@@ -163,16 +163,22 @@ def map_pd_to_db_dtypes(df, storage_type=None):
         # dtypes can be compared to their string representations for equality
         db_dtypes[db_dtypes == orig_type] = new_type
 
+    # If any of the columns are of type 'object', they will be deemed complex
+    # and will require additional processing.
+    # Supported 'object' types are strings, lists, and dicts
+    # (Lists and dicts can be arbitrarily nested)
     if any(db_dtypes.eq('COMPLEX')):
         complex_cols = db_dtypes.index[db_dtypes.eq('COMPLEX')]
         db_dtypes = handle_complex_dtypes(
             df[complex_cols], db_dtypes)
 
         if any(db_dtypes.str.contains('ARRAY|STRUCT')):
+            # CSV support for arrays and structs is not currently implemented.
             if storage_type in ['csv']:
                 raise TypeError('Complex types are not yet supported in '
                                 'the {} storage format.'.format(storage_type))
 
+            # Parquet currently only supports structs, not arrays
             if storage_type == 'pq':
                 if any(db_dtypes.str.contains('ARRAY')):
                     raise TypeError('Lists are not currently supported in the '
@@ -215,7 +221,10 @@ def handle_complex_dtypes(df_complex, db_dtypes):
 
 def reduce_complex_type(col):
     """
-    Reduces the dtype of a complex column to a type usable in base Python
+    Reduces the dtype of a complex column to a type usable in base Python.
+    Considers every the type of every value in the column, and coalesces it
+    to a specific, single type that captures all of them, then returns that
+    type as a string.
 
     Args:
         col (pd.Series): A column with a complex dtype
@@ -256,15 +265,20 @@ def handle_array_col(col):
         dtype_str (string): Hive DDL for the column
     """
     array_series = pd.Series(col[~col.isna()].sum())
+    # Getting type of the items the array holds
     array_dtype = dtype_map[array_series.dtype.name]
+
+    # If array's items are themselves a complex type
     if array_dtype == 'COMPLEX':
         reduced_type = reduce_complex_type(array_series)
         if reduced_type == 'string':
             array_dtype = 'STRING'
 
+        # If the array itself holds arrays, handle the nested field(s) first
         elif reduced_type == 'list':
             array_dtype = handle_array_col(array_series)
 
+        # If the array holds structs, handle the nested field(s) first
         elif reduced_type == 'dict':
             array_dtype = handle_struct_col(array_series)
 
@@ -283,8 +297,10 @@ def handle_struct_col(col):
     Returns:
         dtype_str (string): Hive DDL for the column
     """
+    # Gets all structs (dicts) from non-null rows of the column
     struct_df = pd.DataFrame.from_records(
         col[~col.isna()].reset_index(drop=True))
+    # Treat dicts as rows of a new data set, and map types for all subfields
     struct_dtypes = map_pd_to_db_dtypes(struct_df)
 
     dtype_str = 'STRUCT <{}>'.format(

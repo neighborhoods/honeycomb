@@ -7,6 +7,9 @@ from honeycomb import inform
 
 
 def get_secret(key):
+    """
+    Gets a secret under the name 'key' from the AWS parameter store
+    """
     client = boto3.client('ssm', os.getenv('AWS_DEFAULT_REGION'))
     resp = client.get_parameter(Name=key, WithDecryption=True)
     return resp['Parameter']['Value']
@@ -19,7 +22,6 @@ def get_salesforce_conn():
     SALESFORCE_SECURITY_TOKEN available in the environment
     Returns: simple_salesforce.api.Salesforce: a Salesforce connection object.
     """
-    # TODO (maybe): Check for correct version of 'simple-salesforce'?
     try:
         from simple_salesforce import Salesforce
     except ModuleNotFoundError:
@@ -31,7 +33,7 @@ def get_salesforce_conn():
         username=get_secret(path + 'username'),
         password=get_secret(path + 'password'),
         security_token=get_secret(path + 'token')
-        )
+    )
 
 
 def run_sf_query(query, sf=None):
@@ -92,6 +94,22 @@ def sf_select_star(object_name, where_clause=None, limit_clause=None, sf=None):
 
 def gen_select_star_query(object_name, where_clause=None, limit_clause=None,
                           sf=None):
+    """
+    Salesforce doesn't support SELECT * commands, so this function emulates it
+    by building a complete list of the columns in a Salesforce table
+    and insterting it into a query
+
+    Args:
+        object_name (str): The name of the object (table) being queried
+        where_clause (str): Optional, a WHERE clause to append to the query.
+            Must start with WHERE and be valid SOQL e.g. "WHERE Id = 'ab12345'"
+        limit_clause (str): Optional, a LIMIT clause to append to the query.
+            Must start with LIMIT and be valid SOQL e.g. 'LIMIT 10'
+        sf (simple_salesforce.Salesforce): The Salesforce API object
+
+    Returns:
+        str: The generated SELECT * query
+    """
     if sf is None:
         sf = get_salesforce_conn()
     field_names = sf_get_column_names(object_name, sf)

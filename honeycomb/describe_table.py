@@ -9,6 +9,11 @@ def describe_table(table_name, schema=None,
     Args:
         table_name (str): The name of the table to be queried
         schema (str): The name of the schema to search for the table in
+        include_metadata (bool):
+            Whether the returned DataFrame should contain just column names,
+            types, and comments, or more detailed information such as
+            storage location and type, partitioning metadata, etc.
+
     Returns:
         desc (pd.DataFrame): A dataframe containing descriptive information
             on the specified table

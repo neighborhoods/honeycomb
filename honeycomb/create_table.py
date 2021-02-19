@@ -82,6 +82,7 @@ def create_table_from_df(df, table_name, schema=None,
             Schema to use when writing a DataFrame to an Avro file. If not
             provided, one will be auto-generated.
     """
+    # Less memory efficient, but prevents modification of original df
     if copy_df:
         df = df.copy()
 
@@ -124,9 +125,14 @@ def create_table_from_df(df, table_name, schema=None,
     df, col_defs = prep_df_and_col_defs(
         df, dtypes, timezones, schema, storage_type)
 
+    # Gets settings to pass to river on how to write the files in a
+    # Hive-readable format
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 
+    # tblproperties is for additional metadata to be provided to Hive
+    # for the table. Generally, it is not needed
     tblproperties = {}
+
     if storage_type == 'avro':
         storage_settings, tblproperties = handle_avro_filetype(
             df, storage_settings, tblproperties, avro_schema, col_comments)
@@ -144,6 +150,9 @@ def create_table_from_df(df, table_name, schema=None,
     path += filename
 
     if auto_upload_df:
+        # Creating the table doesn't populate it with data. Unless
+        # auto_upload_df == False, we now need to write the DataFrame to a file
+        # and upload it to S3
         _ = rv.write(df, path, bucket,
                      show_progressbar=False, **storage_settings)
 
@@ -166,6 +175,11 @@ def confirm_ordered_dicts():
 
 
 def handle_existing_table(table_name, schema, overwrite):
+    """
+    Checks if a table name already exists in the lake. If it does,
+    then depending on the value of overwrite, it will either nuke the table
+    or raise an error.
+    """
     table_exists = check.table_existence(table_name, schema)
     if table_exists:
         if not overwrite:
@@ -178,6 +192,10 @@ def handle_existing_table(table_name, schema, overwrite):
 
 
 def validate_table_path(path, table_name):
+    """
+    Ensures that the path provided for the table is valid, or assigns the path
+    as the table name if no path was provided
+    """
     if path is None:
         path = table_name
     path = meta.ensure_path_ends_w_slash(path)
@@ -232,7 +250,10 @@ def check_for_comments(table_comment, columns, col_comments):
             'zone. Columns missing: ' + ', '.join(cols_missing_from_comments))
 
     extra_comments_in_dict = set(columns).difference(set(col_comments.keys()))
-    # Removing comments for nested fields
+
+    # Removing comments for nested fields - difficult/costly to
+    # deterministically check for comments given the way that complex columns
+    # are represented in Python
     extra_comments_in_dict = [comment for comment in extra_comments_in_dict
                               if '.' not in comment]
     if extra_comments_in_dict:
@@ -260,6 +281,11 @@ def check_for_comments(table_comment, columns, col_comments):
 
 
 def check_for_allowed_overwrite(overwrite):
+    """
+    For use with the curated zone, mostly. Checks if overwriting is allowed
+    based on the value of an environment variable. If overwriting is being
+    attempted when it is not allowed, will raise an error
+    """
     if overwrite and not os.getenv('HC_PROD_ENV'):
         raise ValueError(
             'Overwrite functionality is only available in the '
@@ -268,6 +294,9 @@ def check_for_allowed_overwrite(overwrite):
 
 
 def get_storage_type_from_filename(filename):
+    """
+    Gets the filetype of a file from its filename
+    """
     return os.path.splitext(filename)[-1][1:].lower()
 
 
@@ -296,6 +325,8 @@ def handle_avro_filetype(df, storage_settings, tblproperties,
         avro_col_comments = restructure_comments_for_avro(col_comments)
         avro_schema = add_comments_to_avro_schema(avro_schema,
                                                   avro_col_comments)
+
+    # Adding the Avro schema as a string literal to the tblproperties
     tblproperties['avro.schema.literal'] = json.dumps(
         avro_schema, indent=4).replace("'", "\\\\'")
 
@@ -310,6 +341,18 @@ def ctas(select_stmt, table_name, schema=None,
          storage_type='pq', overwrite=False):
     """
     Emulates the standard SQL 'CREATE TABLE AS SELECT' syntax.
+
+    Under the hood, this function creates a view using the provided SELECT
+    statement, and then performs an INSERT OVERWRITE from that view into the
+    new table.
+
+    Because this function uses INSERT OVERWRITE, there are considerable
+    protections within this function to prevent accidental data loss.
+    When an INSERT OVERWRITE command is done on an external table, all of the
+    files in S3 at that table's path are deleted. If the table's path is,
+    for example, the root of a bucket, there could be substantial data loss.
+    As a result, we do our best to smartly assign table paths and prevent
+    large-scale object deletion.
 
     Args:
         select_stmt (str):
@@ -347,6 +390,12 @@ def ctas(select_stmt, table_name, schema=None,
 
     full_path = '/'.join([bucket, path])
 
+    # If this function is used to overwrite a table that is being selected
+    # from, we need to make sure that the original table is not dropped before
+    # selecting from it (which happens at execution time of the INSERT)
+    # In this case, we will temporarily rename the table. If any section of
+    # the remainder of this function fails before the INSERT, the table
+    # will be restored to its original name
     table_rename_template = 'ALTER TABLE {}.{} RENAME TO {}.{}'
     if '{}.{}'.format(schema, table_name) in select_stmt:
         if overwrite:
@@ -365,6 +414,7 @@ def ctas(select_stmt, table_name, schema=None,
                 'in order to overwrite one of the source tables of the '
                 'SELECT statement.'
             )
+    # No rename needed
     else:
         source_table_name = table_name
         table_renamed = False
@@ -376,6 +426,10 @@ def ctas(select_stmt, table_name, schema=None,
             temp_schema, view_name, select_stmt)
         hive.run_lake_query(create_view_stmt)
 
+        # If we DESCRIBE the view, we can get a list of all the columns
+        # in the new table for building DDL and adding comments.
+        # Useful in queries that involve JOINing, so you don't have to build
+        # that column list yourself.
         col_defs = describe_table(view_name, schema=temp_schema)
 
         if schema == 'curated':
@@ -395,6 +449,8 @@ def ctas(select_stmt, table_name, schema=None,
         hive.run_lake_query(insert_overwrite_command,
                             complex_join=True)
     except Exception as e:
+        # If an error occurred at any point in the above and a source table
+        # was renamed, restore its original name
         if table_renamed:
             hive.run_lake_query(table_rename_template.format(
                 schema, source_table_name, schema, table_name
@@ -402,12 +458,15 @@ def ctas(select_stmt, table_name, schema=None,
         raise e
 
     finally:
+        # Regardless of success or failure of the above, we want to
+        # drop the temporary view if it was created
         hive.run_lake_query(
             'DROP VIEW IF EXISTS {}.{}'.format(temp_schema, view_name))
 
-    # If the source table had to be renamed, but it still shares
-    # a storage location with the new table, we just drop it.
-    # Otherwise, we nuke it.
+    # If the source table had to be renamed, it would not have been dropped
+    # by the call to 'handle_existing_table', so we have to handle it here.
+    # If it still shares a storage location with the new table, we just
+    # drop it. Otherwise, we nuke it.
     if table_renamed:
         source_metadata = meta.get_table_metadata(source_table_name,
                                                   schema)
@@ -451,6 +510,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
             memory efficient, but may be undesirable if the df is needed
             again later
     """
+    # Less memory efficient, but prevents modification of original df
     if copy_df:
         df = df.copy()
 
@@ -477,10 +537,13 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     objects_present = rv.list_objects(path, bucket)
 
     if len(objects_present) > 1:
+        # Flash updates are supposed to feel as close to atomic as possible.
+        # Multi-file operations interfere with this.
         raise ValueError(
             'Flash update functionality is only available on '
             'tables that only consist of one underlying file.')
     if meta.is_partitioned_table(table_name, schema):
+        # Difficult to deterministically restore partitions based on new data
         raise ValueError(
             'Flash update functionality is not available on '
             'partitioned tables.')
@@ -495,9 +558,14 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     df, col_defs = prep_df_and_col_defs(
         df, dtypes, timezones, schema, storage_type)
 
+    # Gets settings to pass to river on how to write the files in a
+    # Hive-readable format
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 
+    # tblproperties is for additional metadata to be provided to Hive
+    # for the table. Generally, it is not needed
     tblproperties = {}
+
     if storage_type == 'avro':
         storage_settings, tblproperties = handle_avro_filetype(
             df, storage_settings, tblproperties, col_comments)
@@ -512,6 +580,8 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     inform(create_table_ddl)
     drop_table_stmt = 'DROP TABLE IF EXISTS {}.{}'.format(schema, table_name)
 
+    # Creating the table doesn't populate it with data. We now need to write
+    # the DataFrame to a file and upload it to S3
     _ = rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
     hive.run_lake_query(drop_table_stmt, engine='hive')
     hive.run_lake_query(create_table_ddl, engine='hive')

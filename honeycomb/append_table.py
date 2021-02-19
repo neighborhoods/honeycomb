@@ -48,6 +48,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
             Schema to use when writing a DataFrame to an Avro file. If not
             provided, one will be auto-generated.
     """
+    # Less memory efficient, but prevents original DataFrame from modification
     if copy_df:
         df = df.copy()
 
@@ -60,6 +61,9 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                 schema=schema,
                 table_name=table_name))
 
+    # Gets the table's S3 location and storage type from metadata
+    # We need to know where to write the data to be appended, and
+    # the format to write it in
     table_metadata = meta.get_table_metadata(table_name, schema)
 
     bucket = table_metadata['bucket']
@@ -75,6 +79,8 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
         )
     path = meta.ensure_path_ends_w_slash(path)
 
+    # If the data is to be appended into a partition, we must get the subpath
+    # of the partition if it exists, or create the partition if it doesn't
     if partition_values:
         path += add_partition(table_name, schema, partition_values)
 
@@ -89,6 +95,9 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
 
     df = dtype_mapping.special_dtype_handling(
         df, spec_dtypes=dtypes, spec_timezones=timezones, schema=schema)
+
+    # Columns being in the same order as the table is either
+    # mandatory or highly advisible, depending on storage format.
     df = reorder_columns_for_appending(df, table_name, schema,
                                        partition_values, storage_type,
                                        require_identical_columns)
