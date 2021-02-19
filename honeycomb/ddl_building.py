@@ -442,10 +442,9 @@ def add_comments_to_avro_schema(avro_schema, col_comments):
             if isinstance(non_null_field_type, dict):
                 if 'items' in non_null_field_type:
                     non_null_field_type = non_null_field_type['items']
-                if isinstance(non_null_field_type, dict):
-                    add_comments_to_avro_schema(
-                        non_null_field_type,
-                        field_comments['subfields'])
+                add_comments_to_avro_schema(
+                    non_null_field_type,
+                    field_comments['subfields'])
 
     return avro_schema
 
