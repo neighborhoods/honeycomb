@@ -12,6 +12,8 @@ def run_gbq_query(query, project_id='places-clickstream', credentials=None):
         project_id (str):
             The GCP project to run the query under. Required even if
             a dataset is accessible from multiple projects
+        credentials(dict, str, or google.oauth2.service_account.Credentials):
+            The credentials to use for accessing BigQuery
     """
     try:
         from google.oauth2.service_account import Credentials

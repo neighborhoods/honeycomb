@@ -10,6 +10,10 @@ storage_type_specs = {
         'ddl': 'STORED AS AVRO'
     },
     'csv': {
+        # If the index is written to the CSV, it will be treated by Hive
+        # as a column.
+        # If the header/column names are written to the CSV, they will be
+        # treated by Hive as a row.
         'settings': {
             'index': False,
             'header': False
@@ -20,12 +24,16 @@ storage_type_specs = {
                 "LINES TERMINATED BY '\\n'")
     },
     'json': {
+        # Hive expects JSON data to be written differently than df.to_json()
+        # writes it by default. This is handled by river.
         'settings': {'hive_format': True},
         'ddl': ("ROW FORMAT SERDE\n"
                 "'org.apache.hadoop.hive.serde2.JsonSerDe'\n"
                 "STORED AS TEXTFILE")
     },
     'pq': {
+        # Hive expects timestamps to be saved as 96-bit integers with Parquet,
+        # even though this behavior is no longer the Parquet standard.
         'settings': {
             'engine': 'pyarrow',
             'compression': 'snappy',
@@ -174,6 +182,9 @@ def get_table_storage_type_from_metadata(table_metadata):
 
     storage_format = hive_input_format_to_storage_type[input_format]
     if storage_format == 'text':
+        # Both CSV and JSON tables will have a storage format of 'text',
+        # so we must further differentiate them by checking the
+        # serde type
         serde_label_idx = table_metadata.index[
             table_metadata['createtab_stmt'].str.strip() ==
             "ROW FORMAT SERDE"].values[0]

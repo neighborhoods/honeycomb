@@ -33,8 +33,13 @@ def run_lake_query(query, engine='hive', complex_join=False):
     else:
         configuration = None
 
+    # INSERT OVERWRITE commands on external tables can cause file deletion in
+    # S3. As a result, we check that the path being overwritten into is not
+    # the root of the bucket
     insert_overwrite_pattern = r'INSERT *OVERWRITE'
     if re.match(insert_overwrite_pattern, query, flags=re.IGNORECASE):
+        # Multi-Insert statements have unknown behavior currently, so we
+        # disallow them
         if len(re.findall(insert_overwrite_pattern, query,
                           flags=re.IGNORECASE)) > 1:
             raise ValueError(
@@ -63,6 +68,9 @@ def run_lake_query(query, engine='hive', complex_join=False):
 
 
 def _hive_get_nonvectorized_config(configuration=None):
+    """
+    Sets the Hive option for query vectorization to false
+    """
     false_str = 'false'
     if isinstance(configuration, dict):
         configuration[hive_vector_option_name] = false_str
