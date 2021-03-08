@@ -20,6 +20,17 @@ dtype_map = {
     'float64': 'DOUBLE',
     'bool': 'BOOLEAN',
     'datetime64[ns]': 'TIMESTAMP',
+    # Pandas 1.0 types
+    'string': 'STRING',
+    'Int8': 'BIGINT',
+    'Int16': 'BIGINT',
+    'Int32': 'BIGINT',
+    'Int64': 'BIGINT',
+    'UInt8': 'BIGINT',
+    'UInt16': 'BIGINT',
+    'UInt32': 'BIGINT',
+    'UInt64': 'BIGINT',
+    'boolean': 'BOOLEAN'
 }
 
 
@@ -157,6 +168,18 @@ def map_pd_to_db_dtypes(df, storage_type=None):
     if any(df.dtypes == 'timedelta64[ns]'):
         raise TypeError('Pandas\' \'timedelta64[ns]\' type is not supported. '
                         'Contact honeycomb devs for further info.')
+
+    # These refer to the pandas v1.0 dtypes, NOT the base Python types
+    avro_disallowed_types = ['string', 'boolean']
+
+    pd_v1_type_cols = df.columns[
+        df.dtypes.astype(str).isin(avro_disallowed_types)]
+    if storage_type == 'avro' and len(pd_v1_type_cols) > 0:
+        raise TypeError(
+            'The following columns are using Pandas v1.0 nullable-string '
+            'or nullable-boolean dtypes, which are currently not supported '
+            'when using the avro filetype.'
+        )
     db_dtypes = df.dtypes.copy()
 
     for orig_type, new_type in dtype_map.items():

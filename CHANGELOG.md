@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Support for Pandas v1.0+ nullable integer, nullable string, and nullable boolean types
+
 ### Changed
 - Column comments will now be properly added to the Avro schema in struct fields
 nested within arrays
