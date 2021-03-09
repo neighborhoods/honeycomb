@@ -69,6 +69,46 @@ def test_df_all_types():
 
 
 @pytest.fixture
+def test_df_pdv1_types():
+    pdv1_test_mapping = {
+        'int8col': {
+            'vals': [1, 2, 3],
+            'pd_type': pd.Int8Dtype()
+        },
+        'int16col': {
+            'vals': [1, 2, 3],
+            'pd_type': pd.Int16Dtype()
+        },
+        'int32col': {
+            'vals': [1, 2, 3],
+            'pd_type': pd.Int32Dtype()
+        },
+        'int64col': {
+            'vals': [1, 2, 3],
+            'pd_type': pd.Int64Dtype()
+        },
+        'stringcol': {
+            'vals': ['one', 'two', 'three'],
+            'pd_type': pd.StringDtype()
+        },
+        'boolcol': {
+            'vals': [True, False, True],
+            'pd_type': pd.BooleanDtype()
+        }
+    }
+    pdv1_df = pd.DataFrame({
+        col_name: col_meta['vals']
+        for col_name, col_meta in pdv1_test_mapping.items()
+    })
+
+    pdv1_df = pdv1_df.astype({
+        col_name: col_meta['pd_type']
+        for col_name, col_meta in pdv1_test_mapping.items()
+    })
+    return pdv1_df
+
+
+@pytest.fixture
 def mock_s3_client():
     """Mocks all s3 connections in any test or fixture that includes it"""
     with mock_s3():

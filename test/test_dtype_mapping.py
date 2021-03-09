@@ -42,6 +42,22 @@ def test_map_pd_to_db_dtypes_unsupported_fails():
         map_pd_to_db_dtypes(td_df, storage_type='csv')
 
 
+def test_map_pd_to_db_dtypes_pdv1_types(test_df_pdv1_types):
+    expected_dtypes = pd.DataFrame({
+        'col_name': ['int8col', 'int16col', 'int32col', 'int64col',
+                     'stringcol', 'boolcol'],
+        'dtype': ['BIGINT', 'BIGINT', 'BIGINT', 'BIGINT', 'STRING', 'BOOLEAN']
+    })
+
+    mapped_dtypes = map_pd_to_db_dtypes(test_df_pdv1_types, storage_type='csv')
+    assert mapped_dtypes.equals(expected_dtypes)
+
+
+def test_avro_disallows_pdv1_types(test_df_pdv1_types):
+    with pytest.raises(TypeError, match=r'using Pandas v1.0.* not supported'):
+        map_pd_to_db_dtypes(test_df_pdv1_types, storage_type='avro')
+
+
 def test_apply_spec_dtypes(test_df_all_types):
     """
     Tests that applying specified dtypes behaves as expected under
