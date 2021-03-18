@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from honeycomb import hive
 from honeycomb.describe_table import describe_table
@@ -61,6 +62,19 @@ def ensure_path_ends_w_slash(path):
     """Ensures that a path string ends with a slash"""
     if not path.endswith('/'):
         path += '/'
+    return path
+
+
+def validate_table_path(path, table_name):
+    """
+    Ensures that the path provided for the table is valid, or assigns the path
+    as the table name if no path was provided
+    """
+    if path is None:
+        path = table_name
+    path = ensure_path_ends_w_slash(path)
+    if not re.match(r'^\w+/$', path, flags=re.ASCII):
+        raise ValueError('Invalid table path provided.')
     return path
 
 

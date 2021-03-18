@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Support for Pandas v1.0+ nullable integer, nullable string, and nullable boolean types
+- Support for passing a custom path to `add_partition`
+- Support for datetimes as partition values in `add_partition`
 
 ### Changed
 - Column comments will now be properly added to the Avro schema in struct fields
