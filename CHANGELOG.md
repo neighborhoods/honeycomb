@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.4] 2021-03-18
+
 ### Added
 - Support for Pandas v1.0+ nullable integer, nullable string, and nullable boolean types
 - Support for passing a custom path to `add_partition`
