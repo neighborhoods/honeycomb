@@ -110,7 +110,7 @@ def create_table_from_df(df, table_name, schema=None,
 
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema)
-    path = validate_table_path(path, table_name)
+    path = meta.validate_table_path(path, table_name)
 
     bucket = schema_to_zone_bucket_map[schema]
 
@@ -189,19 +189,6 @@ def handle_existing_table(table_name, schema, overwrite):
                     table_name=table_name))
         else:
             __nuke_table(table_name, schema)
-
-
-def validate_table_path(path, table_name):
-    """
-    Ensures that the path provided for the table is valid, or assigns the path
-    as the table name if no path was provided
-    """
-    if path is None:
-        path = table_name
-    path = meta.ensure_path_ends_w_slash(path)
-    if not re.match(r'^\w+/$', path, flags=re.ASCII):
-        raise ValueError('Invalid table path provided.')
-    return path
 
 
 def check_for_comments(table_comment, columns, col_comments):
@@ -386,7 +373,7 @@ def ctas(select_stmt, table_name, schema=None,
             )
 
     bucket = schema_to_zone_bucket_map[schema]
-    path = validate_table_path(path, table_name)
+    path = meta.validate_table_path(path, table_name)
 
     full_path = '/'.join([bucket, path])
 
