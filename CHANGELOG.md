@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.5] 2021-04-05
+
+### Added
+- INSERT OVERWRITE commands will now work for ORC tables
+
+### Changed
+- Bugfix: Table paths that include more than 1 '/' character will no longer be
+treated as invalid
+
 ## [1.5.4] 2021-03-18
 
 ### Added

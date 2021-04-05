@@ -5,7 +5,7 @@ import re
 import pandas as pd
 
 from honeycomb.connection import get_db_connection
-from honeycomb.meta import get_table_metadata
+from honeycomb.meta import get_table_s3_location
 
 
 col_prefix_regex = r'^.*\.'
@@ -47,10 +47,11 @@ def run_lake_query(query, engine='hive', complex_join=False):
                 'honeycomb for bucket integrity reasons.'
             )
         schema, table_name = re.search(
-            r'INSERT OVERWRITE (?:TABLE )?(\w+)\.(\w+)', query).groups()
+            r'INSERT OVERWRITE (?:TABLE )?(\w+)\.(\w+)', query,
+            flags=re.IGNORECASE).groups()
 
-        table_metadata = get_table_metadata(table_name, schema)
-        if not _hive_check_valid_table_path(table_metadata['path']):
+        _, table_s3_path = get_table_s3_location(table_name, schema)
+        if not _hive_check_valid_table_path(table_s3_path):
             raise ValueError(
                 'The path of the table to be written into makes using an '
                 'INSERT OVERWRITE command unsafe. Please recreate the target '

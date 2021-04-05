@@ -44,6 +44,8 @@ storage_type_specs = {
     }
 }
 
+create_stmt_query_template = 'SHOW CREATE TABLE {schema}.{table_name}'
+
 
 def prep_schema_and_table(table, schema):
     """
@@ -73,7 +75,7 @@ def validate_table_path(path, table_name):
     if path is None:
         path = table_name
     path = ensure_path_ends_w_slash(path)
-    if not re.match(r'^\w+/$', path, flags=re.ASCII):
+    if not re.match(r'^(\w+/)+$', path, flags=re.ASCII):
         raise ValueError('Invalid table path provided.')
     return path
 
@@ -137,14 +139,8 @@ def get_table_metadata(table_name, schema):
         table_name (str): The table to get the metadata of
         schema (str): The schema the table is in
     """
-    create_stmt_query = "SHOW CREATE TABLE {schema}.{table_name}".format(
-        schema=schema,
-        table_name=table_name
-    )
-    table_metadata = hive.run_lake_query(create_stmt_query, 'hive')
-
-    bucket, path = get_table_s3_location_from_metadata(table_metadata)
-    storage_type = get_table_storage_type_from_metadata(table_metadata)
+    bucket, path = get_table_s3_location(table_name, schema)
+    storage_type = get_table_storage_type(table_name, schema)
 
     metadata_dict = {
         'bucket': bucket,
@@ -154,7 +150,7 @@ def get_table_metadata(table_name, schema):
     return metadata_dict
 
 
-def get_table_s3_location_from_metadata(table_metadata):
+def get_table_s3_location(table_name, schema):
     """
     Extracts the underlying S3 location a table uses from its metadata
 
@@ -163,6 +159,12 @@ def get_table_s3_location_from_metadata(table_metadata):
             The metadata of a table in the lake as returned from
             'get_table_metadata'
     """
+    create_stmt_query = create_stmt_query_template.format(
+        schema=schema,
+        table_name=table_name
+    )
+    table_metadata = hive.run_lake_query(create_stmt_query)
+
     loc_label_idx = table_metadata.index[
         table_metadata['createtab_stmt'].str.strip() == "LOCATION"].values[0]
     location = table_metadata.loc[
@@ -175,7 +177,7 @@ def get_table_s3_location_from_metadata(table_metadata):
     return bucket, path
 
 
-def get_table_storage_type_from_metadata(table_metadata):
+def get_table_storage_type(table_name, schema):
     """
     Identifies the format a table's underlying files are stored in using
     the table's metadata.
@@ -183,10 +185,17 @@ def get_table_storage_type_from_metadata(table_metadata):
     Args:
         table_metadata (pd.DataFrame): Metadata of the table being examined
     """
+    create_stmt_query = create_stmt_query_template.format(
+        schema=schema,
+        table_name=table_name
+    )
+    table_metadata = hive.run_lake_query(create_stmt_query)
+
     hive_input_format_to_storage_type = {
         'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat': 'avro',
         'org.apache.hadoop.mapred.TextInputFormat': 'text',
-        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat': 'pq'
+        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat': 'pq',
+        'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat': 'orc'
     }
     format_label_idx = table_metadata.index[
         table_metadata['createtab_stmt'].str.strip() ==

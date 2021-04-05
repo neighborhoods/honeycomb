@@ -70,6 +70,12 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
     path = table_metadata['path']
     storage_type = table_metadata['storage_type']
 
+    if storage_type == 'orc':
+        raise TypeError(
+            'Cannot write directly to ORC from Python - conversion can only '
+            'occur within the lake.'
+        )
+
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema, storage_type)
     if not filename.endswith(storage_type):
