@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.5.5] 2021-04-05
 
 ### Added
-- INSERT OVERWRITE commands will now work for ORC tables
+- `INSERT OVERWRITE` commands will now work for ORC tables
 
 ### Changed
+- Bugfix: `INSERT OVERWRITE` commands are now case-insensitive
 - Bugfix: Table paths that include more than 1 '/' character will no longer be
 treated as invalid
 
