@@ -5,7 +5,7 @@ from .append_table import append_df_to_table
 from .create_table import (
     create_table_from_df, ctas, flash_update_table_from_df)
 from .describe_table import describe_table
-from .meta import get_table_storage_type_from_metadata
+from .meta import get_table_storage_type, get_table_s3_location
 from . import alter_table, check
 from .extras import bigquery, salesforce
 from ._version import (
@@ -22,7 +22,8 @@ __all__ = [
     'create_table_from_df',
     'ctas',
     'describe_table',
-    'get_table_storage_type_from_metadata',
+    'get_table_storage_type',
+    'get_table_s3_location',
     'get_option',
     'set_option',
     'inform',
