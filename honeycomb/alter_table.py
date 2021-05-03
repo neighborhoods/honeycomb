@@ -1,13 +1,12 @@
 from datetime import datetime
 import logging
 
-from honeycomb import check, hive, inform, meta
+from honeycomb import check, hive, meta
+from honeycomb.inform import inform
 
 
 def add_partition(table_name, schema, partition_values, partition_path=None):
-    partition_strings = [
-        '{}=\'{}\''.format(partition_key, str(partition_value))
-        for partition_key, partition_value in partition_values.items()]
+    partition_strings = build_partition_strings(partition_values)
     if partition_path is None:
         # Datetimes cast to str will by default provide an invalid path
         partition_path = '/'.join(
@@ -33,3 +32,10 @@ def add_partition(table_name, schema, partition_values, partition_path=None):
             'Partition {} already exists in table.'.format(partition_strings))
 
     return partition_path
+
+
+def build_partition_strings(partition_values):
+    partition_strings = [
+        '{}=\'{}\''.format(partition_key, str(partition_value))
+        for partition_key, partition_value in partition_values.items()]
+    return partition_strings

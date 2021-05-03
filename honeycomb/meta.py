@@ -41,6 +41,10 @@ storage_type_specs = {
             'use_deprecated_int96_timestamps': True
         },
         'ddl': 'STORED AS PARQUET'
+    },
+    'orc': {
+        'settings': {},
+        'ddl': 'STORED AS ORC'
     }
 }
 
@@ -116,19 +120,28 @@ def generate_s3_filename(storage_type=None):
     return '.'.join([filename, storage_type])
 
 
-def get_table_column_order(table_name, schema):
+def get_table_column_order(table_name, schema, include_dtypes=False):
     """
-    Gets the order of columns in a data lake table
+    Gets the order of columns in a data lake table. Deliberately leaves
+    out partition columns, because those should not be present in the original
+    dataset.
 
     Args:
         table_name (str): The table to get the column order of
         schema (str): The schema the table is in
     """
     colname_col = 'col_name'
+    dtype_col = 'data_type'
     description = describe_table(table_name, schema, include_metadata=True)
     colname_end = description.index[description[colname_col] == ''][0] - 1
-    columns = description.loc[:colname_end, colname_col]
-    return columns.to_list()
+
+    description = description.loc[:colname_end]
+    if not include_dtypes:
+        columns = description[colname_col]
+        return columns.to_list()
+    else:
+        columns_w_types = description[[colname_col, dtype_col]]
+        return columns_w_types.rename(columns={dtype_col: 'dtype'})
 
 
 def get_table_metadata(table_name, schema):

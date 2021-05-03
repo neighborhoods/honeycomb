@@ -2,6 +2,7 @@ import river as rv
 
 from honeycomb import check, meta, dtype_mapping
 from honeycomb.alter_table import add_partition
+from honeycomb.orc import append_df_to_orc_table
 
 
 def append_df_to_table(df, table_name, schema=None, dtypes=None,
@@ -69,13 +70,6 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
     bucket = table_metadata['bucket']
     path = table_metadata['path']
     storage_type = table_metadata['storage_type']
-
-    if storage_type == 'orc':
-        raise TypeError(
-            'Cannot write directly to ORC from Python - conversion can only '
-            'occur within the lake.'
-        )
-
     if filename is None:
         filename = meta.gen_filename_if_allowed(schema, storage_type)
     if not filename.endswith(storage_type):
@@ -84,20 +78,6 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
             'filetype of the table.'
         )
     path = meta.ensure_path_ends_w_slash(path)
-
-    # If the data is to be appended into a partition, we must get the subpath
-    # of the partition if it exists, or create the partition if it doesn't
-    if partition_values:
-        path += add_partition(table_name, schema, partition_values)
-
-    path += filename
-
-    if rv.exists(path, bucket) and not overwrite_file:
-        raise KeyError('A file already exists at s3://{}/{}, '
-                       'Which will be overwritten by this operation. '
-                       'Specify a different filename to proceed.'.format(
-                           bucket, path
-                       ))
 
     df = dtype_mapping.special_dtype_handling(
         df, spec_dtypes=dtypes, spec_timezones=timezones, schema=schema)
@@ -108,10 +88,31 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
                                        partition_values, storage_type,
                                        require_identical_columns)
 
-    storage_settings = meta.storage_type_specs[storage_type]['settings']
-    if avro_schema is not None:
-        storage_settings['schema'] = avro_schema
-    rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
+    # If the data is to be appended into a partition, we must get the
+    # subpath of the partition if it exists, or create
+    # the partition if it doesn't
+    if partition_values:
+        path += add_partition(table_name, schema, partition_values)
+
+    if storage_type == 'orc':
+        append_df_to_orc_table(df, table_name, schema,
+                               bucket, path, filename,
+                               partition_values, avro_schema)
+
+    else:
+        path += filename
+
+        if rv.exists(path, bucket) and not overwrite_file:
+            raise KeyError('A file already exists at s3://{}/{}, '
+                           'Which will be overwritten by this operation. '
+                           'Specify a different filename to proceed.'.format(
+                               bucket, path
+                           ))
+
+        storage_settings = meta.storage_type_specs[storage_type]['settings']
+        if avro_schema is not None:
+            storage_settings['schema'] = avro_schema
+        rv.write(df, path, bucket, show_progressbar=False, **storage_settings)
 
 
 def reorder_columns_for_appending(df, table_name, schema,

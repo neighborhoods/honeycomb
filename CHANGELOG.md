@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] 2020-
+
+### Added
+- ORC file format conversion functionality
+
 ## [1.5.5] 2021-04-05
 
 ### Added
