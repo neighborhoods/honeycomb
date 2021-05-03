@@ -5,8 +5,9 @@ import sys
 import river as rv
 
 from honeycomb import meta
+from honeycomb.create_table_new.create_table import create_table
 from honeycomb.create_table_new.common import (
-    create_table_and_write, check_for_comments, check_for_allowed_overwrite,
+    check_for_comments, check_for_allowed_overwrite,
     get_storage_type_from_filename, handle_existing_table,
     prep_df_and_col_defs, schema_to_zone_bucket_map
 )
@@ -120,11 +121,11 @@ def create_table_from_df(df, table_name, schema=None,
                                  partitioned_by, partition_values,
                                  avro_schema)
     else:
-        create_table_and_write(df, table_name, schema, col_defs,
-                               storage_type, bucket, path, filename,
-                               col_comments, table_comment,
-                               partitioned_by, partition_values,
-                               auto_upload_df, avro_schema)
+        create_table(df, table_name, schema, col_defs,
+                     storage_type, bucket, path, filename,
+                     col_comments, table_comment,
+                     partitioned_by, partition_values,
+                     auto_upload_df, avro_schema)
 
 
 def confirm_ordered_dicts():
