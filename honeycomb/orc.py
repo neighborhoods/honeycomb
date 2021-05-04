@@ -2,7 +2,9 @@ import os
 
 from honeycomb import hive, meta
 from honeycomb.alter_table import build_partition_strings
-from honeycomb.create_table_new.create_table import create_table
+from honeycomb.create_table.build_and_run_ddl_stmt import (
+    build_and_run_ddl_stmt
+)
 from honeycomb.__danger import __nuke_table
 
 
@@ -37,18 +39,18 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
     temp_table_name = temp_table_name_template.format(table_name)
     temp_storage_type = 'parquet'
     temp_filename = replace_file_extension(filename, temp_storage_type)
-    create_table(df, temp_table_name, temp_schema, col_defs,
-                 temp_storage_type, bucket, path, temp_filename,
-                 auto_upload_df=True, avro_schema=avro_schema)
+    build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
+                           temp_storage_type, bucket, path, temp_filename,
+                           auto_upload_df=True, avro_schema=avro_schema)
 
     try:
         # Create actual ORC table
         storage_type = 'orc'
-        create_table(df, table_name, schema, col_defs,
-                     storage_type, bucket, path, filename,
-                     col_comments, table_comment,
-                     partitioned_by, partition_values,
-                     auto_upload_df=False)
+        build_and_run_ddl_stmt(df, table_name, schema, col_defs,
+                               storage_type, bucket, path, filename,
+                               col_comments, table_comment,
+                               partitioned_by, partition_values,
+                               auto_upload_df=False)
 
         insert_into_orc_table(table_name, schema, temp_table_name, temp_schema)
     finally:
@@ -78,9 +80,9 @@ def append_df_to_orc_table(df, table_name, schema,
     col_defs = meta.get_table_column_order(
         table_name, schema, include_dtypes=True).to_string(header=False)
 
-    create_table(df, temp_table_name, temp_schema, col_defs,
-                 temp_storage_type, bucket, path, temp_filename,
-                 auto_upload_df=True, avro_schema=avro_schema)
+    build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
+                           temp_storage_type, bucket, path, temp_filename,
+                           auto_upload_df=True, avro_schema=avro_schema)
     try:
         insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
                               partition_values)

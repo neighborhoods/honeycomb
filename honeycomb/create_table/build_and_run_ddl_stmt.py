@@ -2,16 +2,18 @@ import river as rv
 
 from honeycomb import hive, meta
 from honeycomb.alter_table import add_partition
-from honeycomb.create_table_new.common import handle_avro_filetype
+from honeycomb.create_table.common import handle_avro_filetype
 from honeycomb.ddl_building import build_create_table_ddl
 from honeycomb.inform import inform
 
 
-def create_table(df, table_name, schema, col_defs,
-                 storage_type, bucket, path, filename,
-                 col_comments=None, table_comment=None,
-                 partitioned_by=None, partition_values=None,
-                 auto_upload_df=True, avro_schema=None):
+def build_and_run_ddl_stmt(df, table_name, schema, col_defs,
+                           storage_type, bucket, path, filename,
+                           col_comments=None, table_comment=None,
+                           partitioned_by=None, partition_values=None,
+                           auto_upload_df=True, avro_schema=None):
+    """
+    """
     # Gets settings to pass to river on how to write the files in a
     # Hive-readable format
     storage_settings = meta.storage_type_specs[storage_type]['settings']

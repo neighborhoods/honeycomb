@@ -3,7 +3,7 @@ import os
 import river as rv
 
 from honeycomb import check, hive, meta
-from honeycomb.create_table_new.common import (
+from honeycomb.create_table.common import (
     check_for_comments, get_storage_type_from_filename,
     handle_avro_filetype, prep_df_and_col_defs
 )

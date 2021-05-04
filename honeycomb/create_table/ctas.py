@@ -2,7 +2,7 @@ import os
 import re
 
 from honeycomb import hive, meta
-from honeycomb.create_table_new.common import (
+from honeycomb.create_table.common import (
     check_for_allowed_overwrite, check_for_comments,
     handle_existing_table, schema_to_zone_bucket_map
 )
