@@ -153,7 +153,7 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
         if partition_values
         else ''
     )
-    print(partition_strings)
+
     where_clause = ''
     if matching_partitions:
         where_clause = '\nWHERE ' + ' AND '.join(
