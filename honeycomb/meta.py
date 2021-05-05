@@ -32,7 +32,7 @@ storage_type_specs = {
                 "'org.apache.hadoop.hive.serde2.JsonSerDe'\n"
                 "STORED AS TEXTFILE")
     },
-    'pq': {
+    'parquet': {
         # Hive expects timestamps to be saved as 96-bit integers with Parquet,
         # even though this behavior is no longer the Parquet standard.
         'settings': {
@@ -115,7 +115,7 @@ def generate_s3_filename(storage_type=None):
     """
     filename = datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M-%S')
     if storage_type is None:
-        storage_type = 'pq'
+        storage_type = 'parquet'
 
     return '.'.join([filename, storage_type])
 
@@ -207,7 +207,8 @@ def get_table_storage_type(table_name, schema):
     hive_input_format_to_storage_type = {
         'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat': 'avro',
         'org.apache.hadoop.mapred.TextInputFormat': 'text',
-        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat': 'pq',
+        'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat':
+            'parquet',
         'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat': 'orc'
     }
     format_label_idx = table_metadata.index[

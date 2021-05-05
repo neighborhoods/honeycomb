@@ -39,8 +39,9 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
     temp_table_name = temp_table_name_template.format(table_name)
     temp_storage_type = 'parquet'
     temp_filename = replace_file_extension(filename, temp_storage_type)
+    temp_path = temp_table_name_template.format(path[:-1]) + '/'
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
-                           temp_storage_type, bucket, path, temp_filename,
+                           temp_storage_type, bucket, temp_path, temp_filename,
                            auto_upload_df=True, avro_schema=avro_schema)
 
     try:
@@ -76,12 +77,13 @@ def append_df_to_orc_table(df, table_name, schema,
     temp_table_name = temp_table_name_template.format(table_name)
     temp_storage_type = 'parquet'
     temp_filename = replace_file_extension(filename, temp_storage_type)
+    temp_path = temp_table_name_template.format(path[:-1]) + '/'
 
     col_defs = meta.get_table_column_order(
-        table_name, schema, include_dtypes=True).to_string(header=False)
+        table_name, schema, include_dtypes=True)
 
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
-                           temp_storage_type, bucket, path, temp_filename,
+                           temp_storage_type, bucket, temp_path, temp_filename,
                            auto_upload_df=True, avro_schema=avro_schema)
     try:
         insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
@@ -96,7 +98,7 @@ def replace_file_extension(filename, new_storage_type):
 
 
 def insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
-                          partition_values=None):
+                          partition_values=None, matching_partitions=False):
     """
     Inserts all the values in a particular table into its corresponding ORC
     table. We can't simple do a SELECT *, because that will include partition
@@ -109,6 +111,7 @@ def insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
         temp_table_name (str):
         temp_schema (str):
         partition_values (dict<str:str>):
+        matching_partitions (bool):
     """
     # This discludes partition columns, which is desired behavior
     col_names = meta.get_table_column_order(table_name, schema)
@@ -117,11 +120,17 @@ def insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
         if partition_values
         else ''
     )
+    where_clause = ''
+    if matching_partitions:
+        where_clause = '\nWHERE ' + ' AND '.join(
+            ["'{}'='{}'".format(partition_key, partition_value)
+             for partition_key, partition_value in partition_values.items()])
     insert_command = (
         'INSERT INTO {}.{}{}\n'.format(schema, table_name, partition_strings) +
         'SELECT\n'
         '    {}\n'.format(',\n    '.join(col_names)) +
-        'FROM {}.{}'.format(temp_schema, temp_table_name)
+        'FROM {}.{}'.format(temp_schema, temp_table_name) +
+        '{}'.format(where_clause)
     )
 
     hive.run_lake_query(insert_command)

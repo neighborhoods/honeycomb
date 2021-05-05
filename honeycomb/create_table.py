@@ -8,7 +8,7 @@ from honeycomb import meta
 from honeycomb.create_table_new.build_and_run_ddl_stmt import (
     build_and_run_ddl_stmt
 )
-from honeycomb.create_table_new.common import (
+from honeycomb.create_table.common import (
     check_for_comments, check_for_allowed_overwrite,
     get_storage_type_from_filename, handle_existing_table,
     prep_df_and_col_defs, schema_to_zone_bucket_map

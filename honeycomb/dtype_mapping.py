@@ -202,7 +202,7 @@ def map_pd_to_db_dtypes(df, storage_type=None):
                                 'the {} storage format.'.format(storage_type))
 
             # Parquet currently only supports structs, not arrays
-            if storage_type == 'pq':
+            if storage_type == 'parquet':
                 if any(db_dtypes.str.contains('ARRAY')):
                     raise TypeError('Lists are not currently supported in the '
                                     'Parquet storage format.')

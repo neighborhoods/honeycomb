@@ -13,7 +13,7 @@ from honeycomb.__danger import __nuke_table
 
 def ctas(select_stmt, table_name, schema=None,
          path=None, table_comment=None, col_comments=None,
-         storage_type='pq', overwrite=False):
+         storage_type='parquet', overwrite=False):
     """
     Emulates the standard SQL 'CREATE TABLE AS SELECT' syntax.
 
