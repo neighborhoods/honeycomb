@@ -9,6 +9,7 @@ from honeycomb.__danger import __nuke_table
 
 
 temp_table_name_template = '{}_temp_orc_conv'
+temp_storage_type = 'parquet'
 temp_schema = 'landing'
 
 
@@ -54,9 +55,9 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
 
     # Create temp table to store data in prior to ORC conversion
     temp_table_name = temp_table_name_template.format(table_name)
-    temp_storage_type = choose_temp_storage_type(col_defs)
-    temp_filename = replace_file_extension(filename, temp_storage_type)
     temp_path = temp_table_name_template.format(path[:-1]) + '/'
+    temp_filename = replace_file_extension(filename)
+
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
                            temp_storage_type, bucket, temp_path, temp_filename,
                            auto_upload_df=True, avro_schema=avro_schema)
@@ -102,14 +103,12 @@ def append_df_to_orc_table(df, table_name, schema,
             complex types.
     """
     temp_table_name = temp_table_name_template.format(table_name)
-
     temp_path = temp_table_name_template.format(path[:-1]) + '/'
+    temp_filename = replace_file_extension(filename)
 
     col_defs = meta.get_table_column_order(
         table_name, schema, include_dtypes=True)
-    temp_storage_type = choose_temp_storage_type(col_defs)
 
-    temp_filename = replace_file_extension(filename, temp_storage_type)
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
                            temp_storage_type, bucket, temp_path, temp_filename,
                            auto_upload_df=True, avro_schema=avro_schema)
@@ -120,21 +119,9 @@ def append_df_to_orc_table(df, table_name, schema,
         __nuke_table(temp_table_name, temp_schema)
 
 
-def replace_file_extension(filename, new_storage_type):
-    """ Replaces extension of filename with the new storage_type """
-    return os.path.splitext(filename)[0] + '.' + new_storage_type
-
-
-def choose_temp_storage_type(col_defs):
-    """
-    Chooses a temporary storage type based on whether col_defs contains
-    complex types
-    """
-    if any(col_defs['dtype'].str.contains('<')):
-        storage_type = 'avro'
-    else:
-        storage_type = 'parquet'
-    return storage_type
+def replace_file_extension(filename):
+    """ Replaces extension of filename with the temp storage_type """
+    return os.path.splitext(filename)[0] + '.' + temp_storage_type
 
 
 def insert_into_orc_table(table_name, schema, source_table_name, source_schema,

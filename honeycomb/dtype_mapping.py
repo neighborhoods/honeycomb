@@ -201,12 +201,6 @@ def map_pd_to_db_dtypes(df, storage_type=None):
                 raise TypeError('Complex types are not yet supported in '
                                 'the {} storage format.'.format(storage_type))
 
-            # Parquet currently only supports structs, not arrays
-            if storage_type == 'parquet':
-                if any(db_dtypes.str.contains('ARRAY')):
-                    raise TypeError('Lists are not currently supported in the '
-                                    'Parquet storage format.')
-
     db_dtypes = db_dtypes.to_frame(name='dtype').reset_index().rename(
         columns={'index': 'col_name'})
 
