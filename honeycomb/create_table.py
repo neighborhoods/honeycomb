@@ -5,7 +5,7 @@ import sys
 import river as rv
 
 from honeycomb import meta
-from honeycomb.create_table_new.build_and_run_ddl_stmt import (
+from honeycomb.create_table.build_and_run_ddl_stmt import (
     build_and_run_ddl_stmt
 )
 from honeycomb.create_table.common import (
@@ -27,7 +27,7 @@ def create_table_from_df(df, table_name, schema=None,
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
     Args:
-        df (pd.DataFrame): The DataFrame to create the tabale from.
+        df (pd.DataFrame): The DataFrame to create the table from.
         table_name (str): The name of the table to be created
         schema (str): The name of the schema to create the table in
         dtypes (dict<str:str>, optional): A dictionary specifying dtypes for

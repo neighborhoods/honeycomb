@@ -13,6 +13,43 @@ def build_and_run_ddl_stmt(df, table_name, schema, col_defs,
                            partitioned_by=None, partition_values=None,
                            auto_upload_df=True, avro_schema=None):
     """
+    After preparation is performed in other calling functions,
+    this function actually generates a CREATE TABLE command and runs it,
+    optionally automatically uploading the DataFrame to the table as well
+
+    Args:
+        df (pd.DataFrame): The DataFrame to create the table from.
+        table_name (str): The name of the table to be created
+        schema (str): The name of the schema to create the table in
+        col_defs (pd.DataFrame):
+            A DataFrame with two columns, 'names' containing column names,
+            and 'dtypes', containing a string representation of
+            the column's dtype
+        bucket (str): Bucket containing the table's files
+        path (str): Path within bucket containing the table's files
+        filename (str, optional):
+            Name to store the file under. Used to determine storage format.
+            Can be left blank if writing to the experimental zone,
+            in which case a name will be generated and storage format will
+            default to Parquet
+        col_comments (dict<str:str>, optional):
+            Dictionary from column name keys to column descriptions.
+        table_comment (str, optional): Documentation on the table's purpose
+        partitioned_by (dict<str:str>,
+                        collections.OrderedDict<str:str>, or
+                        list<tuple<str:str>>, optional):
+            Dictionary or list of tuples containing a partition name and type.
+            Cannot be a vanilla dictionary if using Python version < 3.6
+        partition_values (dict<str:str>):
+            Required if 'partitioned_by' is used and 'auto_upload_df' is True.
+            List of tuples containing partition name and value to store
+            the dataframe under
+        auto_upload_df (bool, default True):
+            Whether the df that the table's structure will be based off of
+            should be automatically uploaded to the table
+        avro_schema (dict, optional):
+            Schema to use when writing a DataFrame to an Avro file. If not
+            provided, one will be auto-generated.
     """
     # Gets settings to pass to river on how to write the files in a
     # Hive-readable format

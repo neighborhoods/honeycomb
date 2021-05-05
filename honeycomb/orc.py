@@ -19,25 +19,42 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
                              avro_schema=None):
     """
     Wrapper around the additional steps required for creating an ORC table
-    from a DataFrame, as opposed to any other storage format
+    from a DataFrame, as opposed to any other storage format.
+
+    This function is only needed if auto_upload_df in create_table_from_df
+    is True. If the DataFrame doesn't need to be immediately uploaded,
+    simply creating an ORC table to later append to can be handled there.
 
     Args:
-        df (pd.DataFrame):
-        table_name (str):
-        schema (str):
-        bucket (str):
-        path (str):
+        df (pd.DataFrame): DataFrame to create the table from
+        table_name (str): Name of the table to be created
+        schema (str): Schema to create the table in
+        bucket (str): Bucket containing the table's files
+        path (str): Path within bucket containing the table's files
         filename (str):
+            Filename to store file as - this is mostly for debugging purposes,
+            because we have no control over what hive names files that it
+            writes when it converts data to ORC format. The file will be stored
+            under this name only when uploaded to the temp table
         col_comments (dict<str:str>):
-        table_comment (str):
-        partitioned_by (dict<str:str>):
+            Dictionary from column name keys to column descriptions.
+        table_comment (str): Documentation on the table's purpose
+        partitioned_by (dict<str:str>,
+                        collections.OrderedDict<str:str>, or
+                        list<tuple<str:str>>, optional):
+            Dictionary or list of tuples containing a partition name and type.
+            Cannot be a vanilla dictionary if using Python version < 3.6
         partition_values (dict<str:str>):
-        avro_schema ():
+            List of tuples containing partition name and value to store
+            the dataframe under
+        avro_schema (dict):
+            Schema to use when writing a DataFrame to an Avro file. If not
+            provided, one will be auto-generated.
     """
 
     # Create temp table to store data in prior to ORC conversion
     temp_table_name = temp_table_name_template.format(table_name)
-    temp_storage_type = 'parquet'
+    temp_storage_type = choose_temp_storage_type(col_defs)
     temp_filename = replace_file_extension(filename, temp_storage_type)
     temp_path = temp_table_name_template.format(path[:-1]) + '/'
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
@@ -65,23 +82,34 @@ def append_df_to_orc_table(df, table_name, schema,
     Wrapper around the additional steps required for appending a DataFrame
     to an ORC table, as opposed to any other storage format
     Args:
-        df (pd.DataFrame):
-        table_name (str):
-        schema (str):
-        bucket (str):
-        path (str):
+        df (pd.DataFrame): DataFrame to be appended to the ORC table
+        table_name (str): Table to append df to
+        schema (str): Schema that contains table
+        bucket (str): Bucket containing the table's files
+        path (str): Path within bucket containing the table's files
         filename (str):
-        partition_values (dict<str:str>):
-        avro_schema ():
+            Filename to store file as - this is mostly for debugging purposes,
+            because we have no control over what hive names files that it
+            writes when it converts data to ORC format. The file will be stored
+            under this name only when uploaded to the temp table
+        partition_values (dict<str:str>, optional):
+            List of tuples containing partition keys and values to
+            store the dataframe under. If there is no partiton at the value,
+            it will be created.
+        avro_schema (dict, optional):
+            Schema to use when writing a DataFrame to an Avro file. If not
+            provided, one will be auto-generated. Only used if df contains
+            complex types.
     """
     temp_table_name = temp_table_name_template.format(table_name)
-    temp_storage_type = 'parquet'
-    temp_filename = replace_file_extension(filename, temp_storage_type)
+
     temp_path = temp_table_name_template.format(path[:-1]) + '/'
 
     col_defs = meta.get_table_column_order(
         table_name, schema, include_dtypes=True)
+    temp_storage_type = choose_temp_storage_type(col_defs)
 
+    temp_filename = replace_file_extension(filename, temp_storage_type)
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
                            temp_storage_type, bucket, temp_path, temp_filename,
                            auto_upload_df=True, avro_schema=avro_schema)
@@ -97,7 +125,19 @@ def replace_file_extension(filename, new_storage_type):
     return os.path.splitext(filename)[0] + '.' + new_storage_type
 
 
-def insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
+def choose_temp_storage_type(col_defs):
+    """
+    Chooses a temporary storage type based on whether col_defs contains
+    complex types
+    """
+    if any(col_defs['dtype'].str.contains('<')):
+        storage_type = 'avro'
+    else:
+        storage_type = 'parquet'
+    return storage_type
+
+
+def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
                           partition_values=None, matching_partitions=False):
     """
     Inserts all the values in a particular table into its corresponding ORC
@@ -106,12 +146,16 @@ def insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
     technically metadata, rather than part of the dataset itself)
 
     Args:
-        table_name (str):
-        schema (str):
-        temp_table_name (str):
-        temp_schema (str):
-        partition_values (dict<str:str>):
-        matching_partitions (bool):
+        table_name (str): The ORC table to be inserted into
+        schema (str): The schema that the destination table is stored in
+        source_table_name (str): The table to insert from
+        source_schema (str): The schema that the source table is stored in
+        partition_values (dict<str:str>, Optional):
+            The partition in the destination table to insert into
+        matching_partitions (bool, default False):
+            Whether the partition being inserted to has a matching partition
+            in the source table. Used for inserting subsets of a source table
+            rather than the entire thing.
     """
     # This discludes partition columns, which is desired behavior
     col_names = meta.get_table_column_order(table_name, schema)
@@ -129,7 +173,7 @@ def insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
         'INSERT INTO {}.{}{}\n'.format(schema, table_name, partition_strings) +
         'SELECT\n'
         '    {}\n'.format(',\n    '.join(col_names)) +
-        'FROM {}.{}'.format(temp_schema, temp_table_name) +
+        'FROM {}.{}'.format(source_schema, source_table_name) +
         '{}'.format(where_clause)
     )
 
