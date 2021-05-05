@@ -5,6 +5,7 @@ from honeycomb.alter_table import build_partition_strings
 from honeycomb.create_table.build_and_run_ddl_stmt import (
     build_and_run_ddl_stmt
 )
+from honeycomb.inform import inform
 from honeycomb.__danger import __nuke_table
 
 
@@ -71,7 +72,8 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
                                partitioned_by, partition_values,
                                auto_upload_df=False)
 
-        insert_into_orc_table(table_name, schema, temp_table_name, temp_schema)
+        insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
+                              partition_values)
     finally:
         __nuke_table(temp_table_name, temp_schema)
 
@@ -151,10 +153,11 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
         if partition_values
         else ''
     )
+    print(partition_strings)
     where_clause = ''
     if matching_partitions:
         where_clause = '\nWHERE ' + ' AND '.join(
-            ["'{}'='{}'".format(partition_key, partition_value)
+            ['{}="{}"'.format(partition_key, partition_value)
              for partition_key, partition_value in partition_values.items()])
     insert_command = (
         'INSERT INTO {}.{}{}\n'.format(schema, table_name, partition_strings) +
@@ -163,5 +166,7 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
         'FROM {}.{}'.format(source_schema, source_table_name) +
         '{}'.format(where_clause)
     )
+
+    inform(insert_command)
 
     hive.run_lake_query(insert_command)

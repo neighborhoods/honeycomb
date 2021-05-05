@@ -21,7 +21,7 @@ def add_partition(table_name, schema, partition_values, partition_path=None):
             'PARTITION ({}) LOCATION \'{}\''.format(
                 schema,
                 table_name,
-                ', '.join(partition_strings),
+                partition_strings,
                 partition_path)
         )
         inform(add_partition_query)
@@ -29,13 +29,15 @@ def add_partition(table_name, schema, partition_values, partition_path=None):
         hive.run_lake_query(add_partition_query, engine='hive')
     else:
         logging.warn(
-            'Partition {} already exists in table.'.format(partition_strings))
+            'Partition ({}) already exists in table.'.format(
+                partition_strings)
+        )
 
     return partition_path
 
 
 def build_partition_strings(partition_values):
     partition_strings = [
-        '{}=\'{}\''.format(partition_key, str(partition_value))
+        '{}="{}"'.format(partition_key, str(partition_value))
         for partition_key, partition_value in partition_values.items()]
-    return partition_strings
+    return ', '.join(partition_strings)
