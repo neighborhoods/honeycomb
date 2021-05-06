@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.6.0] 2021-05-05
-
 ### Added
 - ORC file format conversion functionality
-- Complex types are not supported for Parquet format. As a result, Parquet
+- Complex types are now supported for Parquet format. As a result, Parquet
 is now the recommended filetype for all non-prod-level use cases, with a
 further conversion to ORC being optional
 
