@@ -39,5 +39,6 @@ def add_partition(table_name, schema, partition_values, partition_path=None):
 def build_partition_strings(partition_values):
     partition_strings = [
         '{}="{}"'.format(partition_key, str(partition_value))
+        if str(partition_value) != '' else '{}'.format(partition_key)
         for partition_key, partition_value in partition_values.items()]
     return ', '.join(partition_strings)
