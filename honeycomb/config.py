@@ -12,7 +12,7 @@ def set_option(opt, val):
     else:
         _options[opt] = val
         if opt == 'verbose':
-            rv.set_option('verbose', False)
+            rv.set_option('verbose', val)
 
 
 def get_option(opt):

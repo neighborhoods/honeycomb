@@ -1,9 +1,9 @@
 from .config import get_option, set_option
-from .inform import inform
 from .hive import run_lake_query
 from .append_table import append_df_to_table
-from .create_table import (
-    create_table_from_df, ctas, flash_update_table_from_df)
+from .create_table.create_table_from_df import create_table_from_df
+from .create_table.ctas import ctas
+from .create_table.flash_update_table_from_df import flash_update_table_from_df
 from .describe_table import describe_table
 from .meta import get_table_storage_type, get_table_s3_location
 from . import alter_table, check
@@ -26,7 +26,6 @@ __all__ = [
     'get_table_s3_location',
     'get_option',
     'set_option',
-    'inform',
     'bigquery',
     'salesforce',
     '__title__',
