@@ -15,6 +15,10 @@ further conversion to ORC being optional
 - Functionality to perform `ANALYZE TABLE` commands, including on partitions
 and on columns. This can be used to increase query performance on specific tables
 
+### Changed
+- Removed `avro_schema` parameter from ORC functions, since Parquet can be used
+as the default format
+
 ## [1.5.5] 2021-04-05
 
 ### Added
