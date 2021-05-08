@@ -8,6 +8,7 @@ and other data repositories. In doing this, we aim to increase data
 availability throughout the organization, and facilitate any individual
 member feeling empowered to interact with data.
 
+
 ## Usage
 Much of the functionality of `honeycomb` is completely under-the-hood, and as
 a result the average use case of it is very straightforward.
@@ -15,14 +16,15 @@ a result the average use case of it is very straightforward.
 ### General
 1. Supported engines are currently:
     * Runs against data lake:
-       1. Presto - Runs against data lake, and is recommended for most cases.
-       Presto runs queries more quickly than other engines, but has query size
-       limitations. Best for ad-hoc querying and experiments.
-       Must provide a schema in queries.
-       2. Hive - Runs against data lake. Queries are slightly slower than Presto,
+       1. Hive - Runs against data lake. Queries are slightly slower than Presto,
        but has effectively has no limit on query size and has advanced
-       recovery/reliability functionality. Best used for production-level tasks,
-       large queries, and specific actions such as table creation.
+       recovery/reliability functionality. This is the suggested engine
+       for most queries.
+       Must provide a schema in queries.
+       2. Presto - Runs against data lake.
+       Presto runs queries more quickly than other engines, but has query size
+       limitations. Returns all columns as strings. Used for quick, ad-hoc
+       queries, but Hive is recommended over Presto in almost all situations.
        Must provide a schema in queries.
     * Does not run against data lake
         1. Google BigQuery - Runs against data stored in Google BigQuery. Currently,

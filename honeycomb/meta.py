@@ -240,3 +240,15 @@ def is_partitioned_table(table_name, schema):
     if any(desc['col_name'] == '# Partition Information'):
         return True
     return False
+
+
+def get_partition_cols(table_name, schema):
+    if not is_partitioned_table(table_name, schema):
+        return None
+    else:
+        colname_col = 'col_name'
+        desc = describe_table(table_name, schema)
+        partition_col_start_idx = desc.index[
+            desc[colname_col] == '# Partition Information'] + 2
+        partition_cols = desc.loc[partition_col_start_idx:, colname_col]
+        return partition_cols.to_list()

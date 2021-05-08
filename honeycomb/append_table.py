@@ -97,7 +97,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
     if storage_type == 'orc':
         append_df_to_orc_table(df, table_name, schema,
                                bucket, path, filename,
-                               partition_values, avro_schema)
+                               partition_values)
 
     else:
         path += filename
