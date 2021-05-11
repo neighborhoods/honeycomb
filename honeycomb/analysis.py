@@ -67,7 +67,7 @@ def analyze_table(table_name, schema=None):
     build_and_run_analysis_command(table_name, schema)
 
 
-def analyze_columns(table_name, schema=None, columns=[]):
+def analyze_columns(table_name, schema=None, columns=None):
     """
     Convenienct function for doing column-level analysis for a
     non-partitioned table
@@ -81,6 +81,9 @@ def analyze_columns(table_name, schema=None, columns=[]):
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
 
+    if columns is None:
+        columns = []
+
     if meta.is_partitioned_table(table_name, schema):
         raise TypeError((
             'The table {}.{} is partitioned. Use the '
@@ -92,7 +95,7 @@ def analyze_columns(table_name, schema=None, columns=[]):
                                    columns_clause=columns_clause)
 
 
-def analyze_partitions(table_name, schema=None, partition_values={}):
+def analyze_partitions(table_name, schema=None, partition_values=None):
     """
     Convenience function for doing partition-level analysis for as
     partitioned table
@@ -106,6 +109,9 @@ def analyze_partitions(table_name, schema=None, partition_values={}):
             assembly instructions
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
+    if partition_values is None:
+        partition_values = {}
 
     if not meta.is_partitioned_table(table_name, schema):
         raise TypeError((
@@ -121,7 +127,7 @@ def analyze_partitions(table_name, schema=None, partition_values={}):
 
 
 def analyze_partition_columns(table_name, schema=None,
-                              partition_values={}, columns=[]):
+                              partition_values=None, columns=None):
     """
     Convenience function for doing column-level analysis for a
     partitioned table
@@ -138,6 +144,12 @@ def analyze_partition_columns(table_name, schema=None,
             See documentation at top of file for assembly instructions
     """
     table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
+    if partition_values is None:
+        partition_values = {}
+
+    if columns is None:
+        columns = []
 
     if not meta.is_partitioned_table(table_name, schema):
         raise TypeError((
@@ -169,7 +181,7 @@ def get_columns_clause(columns):
     return columns_clause
 
 
-def get_partition_clause(table_name, schema, partition_values={}):
+def get_partition_clause(table_name, schema, partition_values):
     """
     Builds a PARTITION clause of an ANALYZE TABLE command based on
     the partition values specified by the user
