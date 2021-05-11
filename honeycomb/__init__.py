@@ -1,4 +1,6 @@
 from .config import get_option, set_option
+
+from . import analysis
 from .hive import run_lake_query
 from .append_table import append_df_to_table
 from .create_table.create_table_from_df import create_table_from_df
@@ -15,6 +17,7 @@ from ._version import (
 
 __all__ = [
     'alter_table',
+    'analysis',
     'append_df_to_table',
     'check',
     'flash_update_table_from_df',

@@ -18,6 +18,8 @@ and on columns. This can be used to increase query performance on specific table
 ### Changed
 - Removed `avro_schema` parameter from ORC functions, since Parquet can be used
 as the default format
+- Added convenience syntax to `add_partition` for providing schema and
+table name in the same argument (was missing previously)
 
 ## [1.5.5] 2021-04-05
 

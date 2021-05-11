@@ -6,6 +6,8 @@ from honeycomb.inform import inform
 
 
 def add_partition(table_name, schema, partition_values, partition_path=None):
+    table_name, schema = meta.prep_schema_and_table(table_name, schema)
+
     partition_strings = build_partition_strings(partition_values)
     if partition_path is None:
         # Datetimes cast to str will by default provide an invalid path

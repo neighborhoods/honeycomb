@@ -249,6 +249,6 @@ def get_partition_cols(table_name, schema):
         colname_col = 'col_name'
         desc = describe_table(table_name, schema)
         partition_col_start_idx = desc.index[
-            desc[colname_col] == '# Partition Information'] + 2
+            desc[colname_col] == '# Partition Information'][0] + 2
         partition_cols = desc.loc[partition_col_start_idx:, colname_col]
         return partition_cols.to_list()
