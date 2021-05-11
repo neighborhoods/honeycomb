@@ -16,8 +16,6 @@ further conversion to ORC being optional
 and on columns. This can be used to increase query performance on specific tables
 
 ### Changed
-- Removed `avro_schema` parameter from ORC functions, since Parquet can be used
-as the default format
 - Added convenience syntax to `add_partition` for providing schema and
 table name in the same argument (was missing previously)
 - Moved functionality for getting secrets from SSM (AWS parameter store)
