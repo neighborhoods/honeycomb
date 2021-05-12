@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complex types are now supported for Parquet format. As a result, Parquet
 is now the recommended filetype for all non-prod-level use cases, with a
 further conversion to ORC being optional
+- Functionality to perform `ANALYZE TABLE` commands, including on partitions
+and on columns. This can be used to increase query performance on specific tables
+
+### Changed
+- Added convenience syntax to `add_partition` for providing schema and
+table name in the same argument (was missing previously)
+- Moved functionality for getting secrets from SSM (AWS parameter store)
+from the Salesforce module to its own module
 
 ## [1.5.5] 2021-04-05
 

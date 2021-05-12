@@ -17,8 +17,7 @@ temp_schema = 'landing'
 def create_orc_table_from_df(df, table_name, schema, col_defs,
                              bucket, path, filename,
                              col_comments=None, table_comment=None,
-                             partitioned_by=None, partition_values=None,
-                             avro_schema=None):
+                             partitioned_by=None, partition_values=None):
     """
     Wrapper around the additional steps required for creating an ORC table
     from a DataFrame, as opposed to any other storage format.
@@ -49,9 +48,6 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
         partition_values (dict<str:str>):
             List of tuples containing partition name and value to store
             the dataframe under
-        avro_schema (dict):
-            Schema to use when writing a DataFrame to an Avro file. If not
-            provided, one will be auto-generated.
     """
 
     # Create temp table to store data in prior to ORC conversion
@@ -61,7 +57,7 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
 
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
                            temp_storage_type, bucket, temp_path, temp_filename,
-                           auto_upload_df=True, avro_schema=avro_schema)
+                           auto_upload_df=True)
 
     try:
         # Create actual ORC table
@@ -80,7 +76,7 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
 
 def append_df_to_orc_table(df, table_name, schema,
                            bucket, path, filename,
-                           partition_values=None, avro_schema=None):
+                           partition_values=None):
     """
     Wrapper around the additional steps required for appending a DataFrame
     to an ORC table, as opposed to any other storage format
@@ -99,10 +95,6 @@ def append_df_to_orc_table(df, table_name, schema,
             List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
             it will be created.
-        avro_schema (dict, optional):
-            Schema to use when writing a DataFrame to an Avro file. If not
-            provided, one will be auto-generated. Only used if df contains
-            complex types.
     """
     temp_table_name = temp_table_name_template.format(table_name)
     temp_path = temp_table_name_template.format(path[:-1]) + '/'
@@ -113,7 +105,7 @@ def append_df_to_orc_table(df, table_name, schema,
 
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
                            temp_storage_type, bucket, temp_path, temp_filename,
-                           auto_upload_df=True, avro_schema=avro_schema)
+                           auto_upload_df=True)
     try:
         insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
                               partition_values)

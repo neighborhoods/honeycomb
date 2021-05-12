@@ -120,8 +120,7 @@ def create_table_from_df(df, table_name, schema=None,
         create_orc_table_from_df(df, table_name, schema, col_defs,
                                  bucket, path, filename,
                                  col_comments, table_comment,
-                                 partitioned_by, partition_values,
-                                 avro_schema)
+                                 partitioned_by, partition_values)
     else:
         build_and_run_ddl_stmt(df, table_name, schema, col_defs,
                                storage_type, bucket, path, filename,

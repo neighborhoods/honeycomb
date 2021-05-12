@@ -1,18 +1,9 @@
 import os
 
-import boto3
 import pandas as pd
 
-from honeycomb import inform
-
-
-def get_secret(key):
-    """
-    Gets a secret under the name 'key' from the AWS parameter store
-    """
-    client = boto3.client('ssm', os.getenv('AWS_DEFAULT_REGION'))
-    resp = client.get_parameter(Name=key, WithDecryption=True)
-    return resp['Parameter']['Value']
+from honeycomb.inform import inform
+from honeycomb.extras.get_ssm_secret import get_ssm_secret
 
 
 def get_salesforce_conn():
@@ -30,9 +21,9 @@ def get_salesforce_conn():
 
     path = os.getenv('HC_SF_SSM_PATH')
     return Salesforce(
-        username=get_secret(path + 'username'),
-        password=get_secret(path + 'password'),
-        security_token=get_secret(path + 'token')
+        username=get_ssm_secret(path + 'username'),
+        password=get_ssm_secret(path + 'password'),
+        security_token=get_ssm_secret(path + 'token')
     )
 
 
