@@ -22,7 +22,7 @@ def create_table_from_df(df, table_name, schema=None,
                          timezones=None, copy_df=True,
                          partitioned_by=None, partition_values=None,
                          overwrite=False, auto_upload_df=True,
-                         avro_schema=None):
+                         avro_schema=None, hive_functions=None):
     """
     Uploads a dataframe to S3 and establishes it as a new table in Hive.
 
@@ -120,7 +120,8 @@ def create_table_from_df(df, table_name, schema=None,
         create_orc_table_from_df(df, table_name, schema, col_defs,
                                  bucket, path, filename,
                                  col_comments, table_comment,
-                                 partitioned_by, partition_values)
+                                 partitioned_by, partition_values,
+                                 hive_functions)
     else:
         build_and_run_ddl_stmt(df, table_name, schema, col_defs,
                                storage_type, bucket, path, filename,

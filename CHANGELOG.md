@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Creation of/appending to ORC tables now supports application of Hive functions
+on data prior to its addition to the final table 
+
 ## [1.6.0] 2021-05-12
 
 ### Added

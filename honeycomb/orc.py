@@ -17,7 +17,8 @@ temp_schema = 'landing'
 def create_orc_table_from_df(df, table_name, schema, col_defs,
                              bucket, path, filename,
                              col_comments=None, table_comment=None,
-                             partitioned_by=None, partition_values=None):
+                             partitioned_by=None, partition_values=None,
+                             hive_functions=None):
     """
     Wrapper around the additional steps required for creating an ORC table
     from a DataFrame, as opposed to any other storage format.
@@ -60,6 +61,12 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
                            auto_upload_df=True)
 
     try:
+        # We want the original table to use the original column dtype,
+        # so we only apply the expected output type of the hive functions
+        # when creating the ORC table
+        if hive_functions is not None:
+            col_defs = change_col_dtype_to_hive_fn_output(col_defs,
+                                                          hive_functions)
         # Create actual ORC table
         storage_type = 'orc'
         build_and_run_ddl_stmt(df, table_name, schema, col_defs,
@@ -69,14 +76,14 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
                                auto_upload_df=False)
 
         insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
-                              partition_values)
+                              partition_values, hive_functions)
     finally:
         __nuke_table(temp_table_name, temp_schema)
 
 
 def append_df_to_orc_table(df, table_name, schema,
                            bucket, path, filename,
-                           partition_values=None):
+                           partition_values=None, hive_functions=None):
     """
     Wrapper around the additional steps required for appending a DataFrame
     to an ORC table, as opposed to any other storage format
@@ -103,12 +110,15 @@ def append_df_to_orc_table(df, table_name, schema,
     col_defs = meta.get_table_column_order(
         table_name, schema, include_dtypes=True)
 
+    if hive_functions is not None:
+        col_defs = change_col_dtype_to_hive_fn_output(col_defs, hive_functions)
+
     build_and_run_ddl_stmt(df, temp_table_name, temp_schema, col_defs,
                            temp_storage_type, bucket, temp_path, temp_filename,
                            auto_upload_df=True)
     try:
         insert_into_orc_table(table_name, schema, temp_table_name, temp_schema,
-                              partition_values)
+                              partition_values, hive_functions)
     finally:
         __nuke_table(temp_table_name, temp_schema)
 
@@ -119,7 +129,8 @@ def replace_file_extension(filename):
 
 
 def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
-                          partition_values=None, matching_partitions=False):
+                          partition_values=None, hive_functions=None,
+                          matching_partitions=False):
     """
     Inserts all the values in a particular table into its corresponding ORC
     table. We can't simple do a SELECT *, because that will include partition
@@ -146,6 +157,9 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
         else ''
     )
 
+    if hive_functions is not None:
+        col_names = insert_hive_fns_to_col_names(col_names, hive_functions)
+
     where_clause = ''
     if matching_partitions:
         where_clause = '\nWHERE ' + ' AND '.join(
@@ -162,3 +176,34 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
     inform(insert_command)
 
     hive.run_lake_query(insert_command)
+
+
+def insert_hive_fns_to_col_names(col_names, hive_functions):
+    fn_template = '{}({})'
+    for i in range(len(col_names)):
+        col = col_names[i]
+        if col in hive_functions:
+            fn_info = hive_functions[col]
+            if isinstance(fn_info, str):
+                fn_name = fn_info
+            elif isinstance(fn_info, dict):
+                fn_name = fn_info['name']
+                if 'args' in fn_info:
+                    fn_args = ', '.join([str(arg) if arg != '.' else col
+                                         for arg in fn_info['args']])
+                else:
+                    fn_args = col
+
+            col_names[i] = fn_template.format(fn_name, fn_args)
+    return col_names
+
+
+def change_col_dtype_to_hive_fn_output(col_defs, hive_functions):
+    print(col_defs)
+    for col in col_defs['col_name']:
+        if col in hive_functions:
+            if 'output_type' in hive_functions[col]:
+                output_type = hive_functions[col]['output_type']
+                col_defs.loc[col_defs['col_name'] == col,
+                             'dtype'] = output_type
+    return col_defs
