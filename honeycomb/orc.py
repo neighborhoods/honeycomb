@@ -86,7 +86,8 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
 
 def append_df_to_orc_table(df, table_name, schema,
                            bucket, path, filename,
-                           partition_values=None, hive_functions=None):
+                           partition_values=None,
+                           hive_functions=None):
     """
     Wrapper around the additional steps required for appending a DataFrame
     to an ORC table, as opposed to any other storage format
@@ -164,7 +165,7 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
     )
 
     if hive_functions is not None:
-        col_names = insert_hive_fns_to_col_names(col_names, hive_functions)
+        col_names = insert_hive_fns_into_col_names(col_names, hive_functions)
 
     where_clause = ''
     if matching_partitions:
@@ -212,7 +213,7 @@ Expected Structure of 'hive_functions' parameter
 """
 
 
-def insert_hive_fns_to_col_names(col_names, hive_functions):
+def insert_hive_fns_into_col_names(col_names, hive_functions):
     """
     Inserts Hive functions and (potentially) arguments into a list of column
     names, which will then be used in a CREATE TABLE command for an ORC table.

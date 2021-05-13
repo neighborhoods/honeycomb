@@ -49,6 +49,10 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
         avro_schema (dict, optional):
             Schema to use when writing a DataFrame to an Avro file. If not
             provided, one will be auto-generated.
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+            Only usable when working with ORC tables. See 'orc.py'
+            for additional documentation
     """
     # Less memory efficient, but prevents original DataFrame from modification
     if copy_df:
