@@ -72,6 +72,10 @@ def create_table_from_df(df, table_name, schema=None,
         avro_schema (dict, optional):
             Schema to use when writing a DataFrame to an Avro file. If not
             provided, one will be auto-generated.
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+            Only usable when working with ORC tables. See 'orc.py'
+            for additional documentation
     """
     # Less memory efficient, but prevents modification of original df
     if copy_df:

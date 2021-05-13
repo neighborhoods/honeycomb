@@ -49,6 +49,9 @@ def create_orc_table_from_df(df, table_name, schema, col_defs,
         partition_values (dict<str:str>):
             List of tuples containing partition name and value to store
             the dataframe under
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+            See inspected structure in documentation below
     """
 
     # Create temp table to store data in prior to ORC conversion
@@ -102,6 +105,9 @@ def append_df_to_orc_table(df, table_name, schema,
             List of tuples containing partition keys and values to
             store the dataframe under. If there is no partiton at the value,
             it will be created.
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+            See inspected structure in documentation below
     """
     temp_table_name = temp_table_name_template.format(table_name)
     temp_path = temp_table_name_template.format(path[:-1]) + '/'
@@ -178,7 +184,58 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
     hive.run_lake_query(insert_command)
 
 
+"""
+Expected Structure of 'hive_functions' parameter
+
+{
+    # If the function takes a the column as its only argument
+    # and outputs data of the same type as the input column
+    'a_column': 'a_hive_function'
+
+    # If the function takes multiple arguments. The list
+    # of arguments is order-sensitive. A '.' in the
+    # list represents where the column goes in the argument order.
+    # Function args meant to be interpreted as string literals by
+    # Hive must have an additional set of quotes around them.
+    'another_column': {
+        'name': 'another_hive_function',
+        'args': [1, '.', 2.0]
+    }
+
+    # If the function being applied has a different output type
+    # than it's input type
+    'yet_another_column': {
+        'name': 'yet_another_hive_function',
+        'output_type': 'different_type'
+    }
+}
+"""
+
+
 def insert_hive_fns_to_col_names(col_names, hive_functions):
+    """
+    Inserts Hive functions and (potentially) arguments into a list of column
+    names, which will then be used in a CREATE TABLE command for an ORC table.
+    Allows for leveraging hive-internal functionality, such as the 'pow'
+    or 'unhex' functions, when adding data to an ORC table
+
+    This can also be helpful in applying transformations to data in a way
+    that is guaranteeably readable by Hive. For example, the reason for adding
+    this functionality was because a binary-type column, but the values were
+    hex-encoded. Rather than making users manually call 'unhex' on the column
+    every time they were querying it, this functionality allows for translation
+    of the hex-encoded string to raw binary values during the ORC conversion
+    process.
+
+    Args:
+        col_names (list<str>):
+            The list of columns to be selected and inserted into the ORC table
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+    Returns:
+        col_names (list<str>):
+            The list of columns with functions inserted
+    """
     fn_template = '{}({})'
     for i in range(len(col_names)):
         col = col_names[i]
@@ -199,6 +256,24 @@ def insert_hive_fns_to_col_names(col_names, hive_functions):
 
 
 def change_col_dtype_to_hive_fn_output(col_defs, hive_functions):
+    """
+    If Hive functions are being applied during the ORC conversion process,
+    it is possible that the resulting column's type will be different than the
+    origin table. If this occurs (and the table being inserted to is a
+    brand-new table), this function can be used to ensure that the table
+    being created & inserted to expects the correct type.
+
+    Args:
+        col_defs (pd.DataFrame):
+            DataFrame containing column names ('col_name') and
+            types ('dtype')
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+    Returns:
+        col_defs (pd.DataFrame):
+            The column definitions with modified types according to what is
+            output by particular Hive functions
+    """
     print(col_defs)
     for col in col_defs['col_name']:
         if col in hive_functions:
