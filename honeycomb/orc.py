@@ -189,7 +189,7 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
 Expected Structure of 'hive_functions' parameter
 
 {
-    # If the function takes a the column as its only argument
+    # If the function takes a column as its only argument
     # and outputs data of the same type as the input column
     'a_column': 'a_hive_function'
 
@@ -222,7 +222,7 @@ def insert_hive_fns_into_col_names(col_names, hive_functions):
 
     This can also be helpful in applying transformations to data in a way
     that is guaranteeably readable by Hive. For example, the reason for adding
-    this functionality was because a binary-type column, but the values were
+    this functionality was because of a binary-type column, but the values were
     hex-encoded. Rather than making users manually call 'unhex' on the column
     every time they were querying it, this functionality allows for translation
     of the hex-encoded string to raw binary values during the ORC conversion
