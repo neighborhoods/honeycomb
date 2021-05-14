@@ -244,6 +244,7 @@ def insert_hive_fns_into_col_names(col_names, hive_functions):
             fn_info = hive_functions[col]
             if isinstance(fn_info, str):
                 fn_name = fn_info
+                fn_args = col
             elif isinstance(fn_info, dict):
                 fn_name = fn_info['name']
                 if 'args' in fn_info:
