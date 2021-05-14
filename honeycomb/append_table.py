@@ -8,7 +8,8 @@ from honeycomb.orc import append_df_to_orc_table
 def append_df_to_table(df, table_name, schema=None, dtypes=None,
                        filename=None, overwrite_file=False, timezones=None,
                        copy_df=True, partition_values=None,
-                       require_identical_columns=True, avro_schema=None):
+                       require_identical_columns=True, avro_schema=None,
+                       hive_functions=None):
     """
     Uploads a dataframe to S3 and appends it to an already existing table.
     Queries existing table metadata to
@@ -48,6 +49,10 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
         avro_schema (dict, optional):
             Schema to use when writing a DataFrame to an Avro file. If not
             provided, one will be auto-generated.
+        hive_functions (dict<str:str> or dict<str:dict>):
+            Specifications on what hive functions to apply to which columns.
+            Only usable when working with ORC tables. See 'orc.py'
+            for additional documentation
     """
     # Less memory efficient, but prevents original DataFrame from modification
     if copy_df:
@@ -97,7 +102,7 @@ def append_df_to_table(df, table_name, schema=None, dtypes=None,
     if storage_type == 'orc':
         append_df_to_orc_table(df, table_name, schema,
                                bucket, path, filename,
-                               partition_values)
+                               partition_values, hive_functions)
 
     else:
         path += filename
