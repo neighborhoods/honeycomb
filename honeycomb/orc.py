@@ -137,7 +137,8 @@ def replace_file_extension(filename):
 
 def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
                           partition_values=None, hive_functions=None,
-                          matching_partitions=False):
+                          matching_partitions=False,
+                          allow_hive_reserved_words=False):
     """
     Inserts all the values in a particular table into its corresponding ORC
     table. We can't simple do a SELECT *, because that will include partition
@@ -155,7 +156,17 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
             Whether the partition being inserted to has a matching partition
             in the source table. Used for inserting subsets of a source table
             rather than the entire thing.
+        allow_hive_reserved_words (bool, default False):
+            By default, Hive will not allow column names to use reserved words.
+            This can be surpassed by wrapping the column name in backticks (`).
+            Doing so is discouraged, but if the source table makes use of such
+            columns and cannot be easily changed, setting this to True will
+            allow the table to be inserted from
     """
+    # List of reserved words in Hive that could reasonably be used as column
+    # names. This list may expand with time
+    hive_reserved_words = ['date', 'time', 'timestamp']
+
     # This discludes partition columns, which is desired behavior
     col_names = meta.get_table_column_order(table_name, schema)
     partition_strings = (
@@ -164,19 +175,30 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
         else ''
     )
 
+    for i in range(len(col_names)):
+        if col_names[i] in hive_reserved_words:
+            if allow_hive_reserved_words:
+                col_names[i] = '`{}`'.format(col_names[i])
+            else:
+                raise ValueError(
+                    'Source table has columns named with Hive reserved words. '
+                    'If this is unavoidable, set "allow_hive_reserved_words" '
+                    'to True.'
+                )
+
     if hive_functions is not None:
         col_names = insert_hive_fns_into_col_names(col_names, hive_functions)
 
     where_clause = ''
     if matching_partitions:
         where_clause = '\nWHERE ' + ' AND '.join(
-            ['{}="{}"'.format(partition_key, partition_value)
+            ['source_table.{}="{}"'.format(partition_key, partition_value)
              for partition_key, partition_value in partition_values.items()])
     insert_command = (
         'INSERT INTO {}.{}{}\n'.format(schema, table_name, partition_strings) +
         'SELECT\n'
         '    {}\n'.format(',\n    '.join(col_names)) +
-        'FROM {}.{}'.format(source_schema, source_table_name) +
+        'FROM {}.{} source_table'.format(source_schema, source_table_name) +
         '{}'.format(where_clause)
     )
 
