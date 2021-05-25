@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] 2021-05-24
+
+### Changed
+- ORC operations now allow for source tables that make use of Hive reserved
+words as column names. While using these reserved words this way is discouraged,
+there are times where the column names of source tables cannot feasibly be
+controlled.
+
 ## [1.6.1] 2021-05-13
 
 ### Added
