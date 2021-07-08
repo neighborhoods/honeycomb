@@ -165,7 +165,7 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
     """
     # List of reserved words in Hive that could reasonably be used as column
     # names. This list may expand with time
-    hive_reserved_words = ['date', 'time', 'timestamp']
+    hive_reserved_words = ['date', 'time', 'timestamp', 'order']
 
     # This discludes partition columns, which is desired behavior
     col_names = meta.get_table_column_order(table_name, schema)
@@ -298,7 +298,6 @@ def change_col_dtype_to_hive_fn_output(col_defs, hive_functions):
             The column definitions with modified types according to what is
             output by particular Hive functions
     """
-    print(col_defs)
     for col in col_defs['col_name']:
         if col in hive_functions:
             if 'output_type' in hive_functions[col]:
