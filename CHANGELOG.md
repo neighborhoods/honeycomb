@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] 2021-06-14
+
+### Changed
+- Added 'order' to list of reserved words that can be auto-escaped when
+inserting into ORC tables
+- Updated river dependency to fix errors when inserting into ORC tables
+from tables w/ "invalid" storage paths
+
+
 ## [1.6.2] 2021-05-24
 
 ### Changed
