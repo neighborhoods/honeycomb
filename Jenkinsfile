@@ -1,3 +1,5 @@
+@Library('nhdsLib@perm/honeycomb') _
+
 runNeighborhoodsPipeline([
     project: 'honeycomb-ci',
     tests: [
