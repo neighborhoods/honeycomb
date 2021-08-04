@@ -138,7 +138,8 @@ def replace_file_extension(filename):
 def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
                           partition_values=None, hive_functions=None,
                           matching_partitions=False,
-                          allow_hive_reserved_words=False):
+                          allow_hive_reserved_words=False,
+                          overwrite=False):
     """
     Inserts all the values in a particular table into its corresponding ORC
     table. We can't simple do a SELECT *, because that will include partition
@@ -186,6 +187,11 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
                     'to True.'
                 )
 
+    if overwrite:
+        insert_type = 'OVERWRITE'
+    else:
+        insert_type = 'INTO'
+
     if hive_functions is not None:
         col_names = insert_hive_fns_into_col_names(col_names, hive_functions)
 
@@ -195,7 +201,8 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
             ['source_table.{}="{}"'.format(partition_key, partition_value)
              for partition_key, partition_value in partition_values.items()])
     insert_command = (
-        'INSERT INTO {}.{}{}\n'.format(schema, table_name, partition_strings) +
+        'INSERT {} {}.{}{}\n'.format(insert_type, schema, table_name,
+                                     partition_strings) +
         'SELECT\n'
         '    {}\n'.format(',\n    '.join(col_names)) +
         'FROM {}.{} source_table'.format(source_schema, source_table_name) +
