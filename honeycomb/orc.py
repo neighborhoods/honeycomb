@@ -163,6 +163,8 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
             Doing so is discouraged, but if the source table makes use of such
             columns and cannot be easily changed, setting this to True will
             allow the table to be inserted from
+        overwrite (bool, default False):
+            Whether the insert type should be 'INTO' or 'OVERWRITE'
     """
     # List of reserved words in Hive that could reasonably be used as column
     # names. This list may expand with time
