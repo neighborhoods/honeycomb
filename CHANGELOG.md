@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `insert_into_orc_table` function can now use overwrite option
 
+### Changed
+- Fixed incorrect regex matching syntax in detection of `INSERT OVERWRITE` commands
+
 ## [1.6.3] 2021-06-14
 
 ### Changed

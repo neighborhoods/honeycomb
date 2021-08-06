@@ -203,8 +203,8 @@ def insert_into_orc_table(table_name, schema, source_table_name, source_schema,
             ['source_table.{}="{}"'.format(partition_key, partition_value)
              for partition_key, partition_value in partition_values.items()])
     insert_command = (
-        'INSERT {} {}.{}{}\n'.format(insert_type, schema, table_name,
-                                     partition_strings) +
+        'INSERT {} TABLE {}.{}{}\n'.format(insert_type, schema, table_name,
+                                           partition_strings) +
         'SELECT\n'
         '    {}\n'.format(',\n    '.join(col_names)) +
         'FROM {}.{} source_table'.format(source_schema, source_table_name) +
