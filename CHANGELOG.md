@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] 2021-08-05
+
+### Added
+- `insert_into_orc_table` function can now use overwrite option
+
+### Changed
+- Fixed incorrect regex matching syntax in detection of `INSERT OVERWRITE` commands
+
 ## [1.6.3] 2021-06-14
 
 ### Changed
@@ -14,7 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 inserting into ORC tables
 - Updated river dependency to fix errors when inserting into ORC tables
 from tables w/ "invalid" storage paths
-
 
 ## [1.6.2] 2021-05-24
 

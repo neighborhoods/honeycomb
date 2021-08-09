@@ -47,8 +47,8 @@ def run_lake_query(query, engine='hive', complex_join=False):
                 'honeycomb for bucket integrity reasons.'
             )
         schema, table_name = re.search(
-            r'INSERT *OVERWRITE *TABLE *(\w+)\.(\w+)', query,
-            flags=re.IGNORECASE).groups()
+            r'INSERT *OVERWRITE *(TABLE)? *(\w+)\.(\w+)', query,
+            flags=re.IGNORECASE).groups()[1:]
 
         _, table_s3_path = get_table_s3_location(table_name, schema)
         if not _hive_check_valid_table_path(table_s3_path):
