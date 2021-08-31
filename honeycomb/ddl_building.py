@@ -10,6 +10,10 @@ def build_create_table_ddl(table_name, schema, col_defs,
     """
     Assembles the CREATE TABLE statement for the DataFrame being uploaded.
 
+    NOTE: Although nested column comments are properly inserted into the DDL
+    and the DDL is run successfully with them, for a currently unknown reason
+    comments on nested fields are not saved in the Hive metastore.
+
     Args:
         table_name (str):
             The name of the table to be created
