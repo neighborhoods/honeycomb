@@ -7,11 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.7.0] 2021-09-02
+## [1.7.1] 2021-09-02
 
 ### Changed
 - Switched from `river` to open-source `rivet`
-
 
 ## [1.6.4] 2021-08-05
 
