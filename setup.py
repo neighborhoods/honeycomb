@@ -48,9 +48,7 @@ class UploadCommand(Command):
                   sys.executable))
 
         self.status('Uploading the package to PyPI via Twine…')
-        returned_error = os.system(
-            'twine upload dist/* '
-            '--repository-url http://pypi.neighborhoods.com/simple/')
+        returned_error = os.system('twine upload dist/* ')
         if returned_error:
             raise ValueError('Pushing to PyPi failed.')
 
