@@ -1,4 +1,4 @@
-import river as rv
+import rivet as rv
 
 from honeycomb import check, meta, dtype_mapping
 from honeycomb.alter_table import add_partition

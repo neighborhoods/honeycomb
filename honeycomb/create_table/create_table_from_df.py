@@ -2,7 +2,7 @@ from collections import OrderedDict
 import logging
 import sys
 
-import river as rv
+import rivet as rv
 
 from honeycomb import meta
 from honeycomb.create_table.build_and_run_ddl_stmt import (

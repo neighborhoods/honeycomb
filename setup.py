@@ -48,9 +48,7 @@ class UploadCommand(Command):
                   sys.executable))
 
         self.status('Uploading the package to PyPI via Twine…')
-        returned_error = os.system(
-            'twine upload dist/* '
-            '--repository-url http://pypi.neighborhoods.com/simple/')
+        returned_error = os.system('twine upload dist/* ')
         if returned_error:
             raise ValueError('Pushing to PyPi failed.')
 
@@ -86,7 +84,7 @@ setup(
     install_requires=[
         'pandas>=0.25.3',
         'pyhive[hive, presto]>=0.6.1',
-        'river>=1.5',  # Stored in nhds PyPi
+        'rivet>=1.6',
         'pandavro>=1.6'
     ],
     extras_require={

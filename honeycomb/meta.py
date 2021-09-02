@@ -26,7 +26,7 @@ storage_type_specs = {
     },
     'json': {
         # Hive expects JSON data to be written differently than df.to_json()
-        # writes it by default. This is handled by river.
+        # writes it by default. This is handled by rivet.
         'settings': {'hive_format': True},
         'ddl': ("ROW FORMAT SERDE\n"
                 "'org.apache.hadoop.hive.serde2.JsonSerDe'\n"

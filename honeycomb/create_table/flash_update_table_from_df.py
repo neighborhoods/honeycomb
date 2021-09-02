@@ -1,6 +1,6 @@
 import os
 
-import river as rv
+import rivet as rv
 
 from honeycomb import check, hive, meta
 from honeycomb.create_table.common import (
@@ -90,7 +90,7 @@ def flash_update_table_from_df(df, table_name, schema=None, dtypes=None,
     df, col_defs = prep_df_and_col_defs(
         df, dtypes, timezones, schema, storage_type)
 
-    # Gets settings to pass to river on how to write the files in a
+    # Gets settings to pass to rivet on how to write the files in a
     # Hive-readable format
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 

@@ -167,4 +167,4 @@ maintain awareness of what is being performed behind-the-scenes. If this
 is not desirable (as may be the case for notebooks, pipelines, usage of
 `honeycomb` within other packages, etc.), all non-logging output can be
 disabled with `hc.set_option('verbose', False)`. This also sets the
-corresponding `verbose` option in `river` to False.
+corresponding `verbose` option in `rivet` to False.

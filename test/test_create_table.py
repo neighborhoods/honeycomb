@@ -1,6 +1,6 @@
 import pytest
 
-import river as rv
+import rivet as rv
 
 from honeycomb.create_table.create_table_from_df import create_table_from_df
 

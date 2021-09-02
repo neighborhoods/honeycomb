@@ -1,4 +1,4 @@
-import river as rv
+import rivet as rv
 
 _options = {
     'verbose': True
