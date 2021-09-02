@@ -24,7 +24,7 @@ pandas = ">=0.25.3"
 pandas-gbq = "~=0.14"
 pandavro = "~=1.6"
 pyhive = {extras = ["hive", "presto"], version = "~=0.6.1"}
-river = {version="~=1.5", index="nhds"}
+rivet = "~=1.5"
 simple-salesforce = "~=1.1"
 
 [requires]

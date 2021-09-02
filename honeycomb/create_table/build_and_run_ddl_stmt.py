@@ -1,4 +1,4 @@
-import river as rv
+import rivet as rv
 
 from honeycomb import hive, meta
 from honeycomb.alter_table import add_partition
@@ -51,7 +51,7 @@ def build_and_run_ddl_stmt(df, table_name, schema, col_defs,
             Schema to use when writing a DataFrame to an Avro file. If not
             provided, one will be auto-generated.
     """
-    # Gets settings to pass to river on how to write the files in a
+    # Gets settings to pass to rivet on how to write the files in a
     # Hive-readable format
     storage_settings = meta.storage_type_specs[storage_type]['settings']
 

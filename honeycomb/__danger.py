@@ -1,6 +1,6 @@
 from honeycomb import hive, meta
 
-import river as rv
+import rivet as rv
 
 
 def __nuke_table(table_name, schema):

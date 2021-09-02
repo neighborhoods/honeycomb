@@ -86,7 +86,7 @@ setup(
     install_requires=[
         'pandas>=0.25.3',
         'pyhive[hive, presto]>=0.6.1',
-        'river>=1.5',  # Stored in nhds PyPi
+        'rivet>=1.5',
         'pandavro>=1.6'
     ],
     extras_require={
