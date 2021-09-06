@@ -168,9 +168,8 @@ def get_table_s3_location(table_name, schema):
     Extracts the underlying S3 location a table uses from its metadata
 
     Args:
-        table_metadata (pd.DataFrame):
-            The metadata of a table in the lake as returned from
-            'get_table_metadata'
+        table_name (str): The table to get the S3 location of
+        schema (str): The schema the table is in
     """
     create_stmt_query = create_stmt_query_template.format(
         schema=schema,
@@ -196,7 +195,8 @@ def get_table_storage_type(table_name, schema):
     the table's metadata.
 
     Args:
-        table_metadata (pd.DataFrame): Metadata of the table being examined
+        table_name (str): The table to get the storage type of
+        schema (str): The schema the table is in
     """
     create_stmt_query = create_stmt_query_template.format(
         schema=schema,
@@ -233,6 +233,14 @@ def get_table_storage_type(table_name, schema):
             storage_format = 'csv'
 
     return storage_format
+
+
+"""
+For the following two functions, the column returned by 'col_name'
+contains more than just column names. Hive itself doesn't return names
+for the columns returned by a DESCRIBE query, and pandas assumes that the
+values in the first row should be copied into the column names.
+"""
 
 
 def is_partitioned_table(table_name, schema):
